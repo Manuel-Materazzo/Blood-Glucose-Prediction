@@ -28,7 +28,6 @@ jobs:
           git remote set-url origin https://${{ secrets.ACTIONS_PAT }}@github.com/Manuel-Materazzo/BoostUtils.git
 
       - name: Pull changes from BoostUtils
-        continue-on-error: true
         run: |
           git remote add boost-utils https://github.com/Manuel-Materazzo/BoostUtils.git
           git fetch boost-utils
@@ -40,13 +39,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.ACTIONS_PAT }}
         run: |
-          git merge --abort
+          git branch -D conflict-resolution || true
           git checkout -b conflict-resolution
-          git fetch boost-utils
-          git config pull.rebase true
-          git pull boost-utils master --allow-unrelated-histories || true
           git add .
-          git commit -m "Resolve merge conflicts"
+          git commit -m "Resolve merge conflicts" || true
           git push -u origin conflict-resolution
           gh auth login --with-token <<<"${{ secrets.ACTIONS_PAT }}"
           gh pr create --title "Resolve merge conflicts" --body "This PR resolves merge conflicts that occurred during the sync." --head conflict-resolution --base master
