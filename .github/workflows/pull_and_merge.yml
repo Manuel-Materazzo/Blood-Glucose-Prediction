@@ -43,7 +43,7 @@ jobs:
           git merge --abort
           git checkout -b conflict-resolution
           git fetch boost-utils
-          git config pull.rebase false
+          git config pull.rebase true
           git pull boost-utils master --allow-unrelated-historie
           git add .
           git commit -m "Resolve merge conflicts"
