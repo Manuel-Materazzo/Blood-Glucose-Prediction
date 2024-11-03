@@ -1,0 +1,28 @@
+name: Pull and Merge from BoostUtils
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * *'
+
+
+jobs:
+  pull_and_merge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Pull changes from BoostUtils
+        run: |
+          git remote add boost-utils https://github.com/Manuel-Materazzo/BoostUtils.git
+          git fetch boost-utils
+          git pull boost-utils main
+
+      - name: Merge changes
+        run: |
+          git merge boost-utils/main
+          git push origin main
