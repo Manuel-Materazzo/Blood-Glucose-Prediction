@@ -43,8 +43,9 @@ jobs:
           git checkout --ours resources/data_description.txt
           git checkout --ours resources/test.csv
           git checkout --ours resources/train.csv
+          git checkout --ours README.md
           git add . 
-          git reset src/pipelines/housing_prices_competition_dt_pipeline.py resources/data_description.txt resources/test.csv resources/train.csv
+          git reset src/pipelines/housing_prices_competition_dt_pipeline.py resources/data_description.txt resources/test.csv resources/train.csv README.md
 
       - name: Push changes to new branch
         continue-on-error: true
