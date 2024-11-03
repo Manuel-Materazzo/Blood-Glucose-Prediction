@@ -30,9 +30,7 @@ jobs:
       - name: Pull changes from BoostUtils
         run: |
           git remote add boost-utils https://github.com/Manuel-Materazzo/BoostUtils.git
-          git fetch boost-utils
-          git config pull.rebase true
-          git pull boost-utils master --allow-unrelated-histories
+          git reset --hard boost-utils/master
 
       - name: Remove main.py changes
         run: |
