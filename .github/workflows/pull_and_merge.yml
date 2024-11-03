@@ -28,14 +28,18 @@ jobs:
           git remote set-url origin https://${{ secrets.ACTIONS_PAT }}@github.com/Manuel-Materazzo/Blood-Glucose-Prediction.git
 
       - name: Pull changes from BoostUtils
+        continue-on-error: true
         run: |
           git remote add boost-utils https://github.com/Manuel-Materazzo/BoostUtils.git
-          git reset --hard boost-utils/master
+          git fetch boost-utils
+          git config pull.rebase false
+          git pull boost-utils master --allow-unrelated-histories
 
-      - name: Remove main.py changes
+      - name: Resolve conflicts automatically
         run: |
+          git checkout --theirs .
           git checkout --ours src/main.py
-          git add src/main.py
+          git add .
 
       - name: Push changes to new branch
         env:
