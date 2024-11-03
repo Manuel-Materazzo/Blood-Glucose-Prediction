@@ -44,6 +44,8 @@ jobs:
           git add .
           git commit -m "Pull changes from BoostUtils"
           git push -u origin conflict-resolution --force
+          gh auth login --with-token <<<"${{ secrets.ACTIONS_PAT }}"
+          gh pr create --title "Resolve merge conflicts or updates" --body "This PR resolves merge conflicts or includes updates that occurred during the sync." --head conflict-resolution --base master
 
       - name: Merge changes
         run: |
