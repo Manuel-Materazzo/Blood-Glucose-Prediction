@@ -25,7 +25,7 @@ jobs:
         env:
           ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
         run: |
-          git remote set-url origin https://${{ secrets.ACTIONS_PAT }}@github.com/Manuel-Materazzo/BoostUtils.git
+          git remote set-url origin https://${{ secrets.ACTIONS_PAT }}@github.com/Manuel-Materazzo/Blood-Glucose-Prediction.git
 
       - name: Pull changes from BoostUtils
         run: |
@@ -33,6 +33,11 @@ jobs:
           git fetch boost-utils
           git config pull.rebase false
           git pull boost-utils master --allow-unrelated-histories
+
+      - name: Merge changes
+        run: |
+          git merge boost-utils/master --allow-unrelated-histories
+          git push origin master
 
       - name: Push changes to new branch
         if: failure()
