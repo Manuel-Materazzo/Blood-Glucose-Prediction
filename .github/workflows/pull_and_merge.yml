@@ -43,7 +43,7 @@ jobs:
           git checkout --ours resources/data_description.txt
           git checkout --ours resources/test.csv
           git checkout --ours resources/train.csv
-          git add .
+          git add . ':!resources/data_description.txt' ':!resources/test.csv' ':!resources/train.csv' ':!src/pipelines/housing_prices_competition_dt_pipeline.py' 
 
       - name: Push changes to new branch
         continue-on-error: true
@@ -52,7 +52,7 @@ jobs:
         run: |
           git branch -D conflict-resolution || true
           git checkout -b conflict-resolution
-          git add . ':!main.py'  # Exclude main.py
+          git add . ':!main.py' ':!resources/data_description.txt' ':!resources/test.csv' ':!resources/train.csv' ':!src/pipelines/housing_prices_competition_dt_pipeline.py' 
           git commit -m "Pull changes from BoostUtils"
           git push -u origin conflict-resolution --force
           gh auth login --with-token <<<"${{ secrets.ACTIONS_PAT }}"
