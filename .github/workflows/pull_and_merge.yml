@@ -22,9 +22,9 @@ jobs:
           git remote add boost-utils https://github.com/Manuel-Materazzo/BoostUtils.git
           git fetch boost-utils
           git config pull.rebase false
-          git pull boost-utils master
+          git pull boost-utils master --allow-unrelated-histories
 
       - name: Merge changes
         run: |
-          git merge boost-utils/master
+          git merge boost-utils/master --allow-unrelated-histories
           git push origin master
