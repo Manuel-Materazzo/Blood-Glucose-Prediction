@@ -35,9 +35,10 @@ jobs:
           git config pull.rebase false
           git pull boost-utils master --allow-unrelated-histories
 
-      - name: Skip changes to main.py
+      - name: Remove main.py changes
         run: |
-          git update-index --skip-worktree src/main.py
+          git checkout --ours src/main.py
+          git add src/main.py
 
       - name: Push changes to new branch
         env:
