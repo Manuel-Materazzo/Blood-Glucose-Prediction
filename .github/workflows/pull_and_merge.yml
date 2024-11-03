@@ -26,7 +26,7 @@ jobs:
         env:
           ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
         run: |
-          git remote set-url origin https://${{ secrets.ACTIONS_PAT }}@github.com/YOUR_USERNAME/YOUR_SECOND_REPO.git
+          git remote set-url origin https://${{ secrets.ACTIONS_PAT }}@github.com/Manuel-Materazzo/BoostUtils.git
 
       - name: Pull changes from BoostUtils
         run: |
