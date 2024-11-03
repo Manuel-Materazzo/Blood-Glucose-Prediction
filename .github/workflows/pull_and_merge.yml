@@ -28,14 +28,18 @@ jobs:
           git remote set-url origin https://${{ secrets.ACTIONS_PAT }}@github.com/Manuel-Materazzo/Blood-Glucose-Prediction.git
 
       - name: Pull changes from BoostUtils
+        continue-on-error: true
         run: |
           git remote add boost-utils https://github.com/Manuel-Materazzo/BoostUtils.git
           git fetch boost-utils
           git config pull.rebase false
           git pull boost-utils master --allow-unrelated-histories
 
+      - name: Exclude main.py
+        run: |
+          git rm --cached src/main.py || true
+
       - name: Push changes to new branch
-        if: failure()
         env:
           ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
         run: |
@@ -46,8 +50,3 @@ jobs:
           git push -u origin conflict-resolution --force
           gh auth login --with-token <<<"${{ secrets.ACTIONS_PAT }}"
           gh pr create --title "Resolve merge conflicts or updates" --body "This PR resolves merge conflicts or includes updates that occurred during the sync." --head conflict-resolution --base master
-
-      - name: Merge changes
-        run: |
-          git merge boost-utils/master --allow-unrelated-histories
-          git push origin master
