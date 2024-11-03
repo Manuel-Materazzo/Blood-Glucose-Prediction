@@ -32,13 +32,8 @@ jobs:
         run: |
           git remote add boost-utils https://github.com/Manuel-Materazzo/BoostUtils.git
           git fetch boost-utils
-          git config pull.rebase false
-          git pull boost-utils master --allow-unrelated-histories
-
-      - name: Remove main.py changes
-        run: |
-          git checkout --ours src/main.py
-          git add src/main.py
+          git reset --hard boost-utils/master
+          git reset -- main.py
 
       - name: Push changes to new branch
         env:
