@@ -42,6 +42,7 @@ jobs:
         run: |
           git merge --abort
           git checkout -b conflict-resolution
+          git fetch boost-utils
           git add .
           git commit -m "Resolve merge conflicts"
           git push -u origin conflict-resolution
