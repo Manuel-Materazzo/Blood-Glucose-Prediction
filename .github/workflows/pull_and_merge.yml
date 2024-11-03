@@ -33,7 +33,7 @@ jobs:
           git remote add boost-utils https://github.com/Manuel-Materazzo/BoostUtils.git
           git fetch boost-utils
           git config pull.rebase false  # merge
-          git pull boost-utils master --allow-unrelated-histories || exit 0
+          git pull boost-utils master --allow-unrelated-histories
 
       - name: Handle conflicts and create PR if needed
         if: failure()
