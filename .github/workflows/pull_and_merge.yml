@@ -41,7 +41,7 @@ jobs:
         run: |
           git branch -D conflict-resolution || true
           git checkout -b conflict-resolution
-          git add .
+          git add . ':!main.py'  # Exclude main.py
           git commit -m "Pull changes from BoostUtils"
           git push -u origin conflict-resolution --force
           gh auth login --with-token <<<"${{ secrets.ACTIONS_PAT }}"
