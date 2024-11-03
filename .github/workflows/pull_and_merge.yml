@@ -39,6 +39,10 @@ jobs:
         run: |
           git checkout --theirs .
           git checkout --ours src/main.py
+          git checkout --ours src/pipelines/housing_prices_competition_dt_pipeline.py
+          git checkout --ours resources/data_description.txt
+          git checkout --ours resources/test.csv
+          git checkout --ours resources/train.csv
           git add .
 
       - name: Push changes to new branch
