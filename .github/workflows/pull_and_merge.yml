@@ -3,7 +3,7 @@ name: Pull and Merge from BoostUtils
 on:
   push:
     branches:
-      - main
+      - master
   schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
@@ -22,24 +22,28 @@ jobs:
           git config --global user.name "${{ secrets.GIT_USER_NAME }}"
           git config --global user.email "${{ secrets.GIT_USER_EMAIL }}"
 
+      - name: Authenticate with PAT
+        env:
+          ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
+        run: |
+          git remote set-url origin https://${{ secrets.ACTIONS_PAT }}@github.com/YOUR_USERNAME/YOUR_SECOND_REPO.git
+
       - name: Pull changes from BoostUtils
         run: |
           git remote add boost-utils https://github.com/Manuel-Materazzo/BoostUtils.git
           git fetch boost-utils
           git config pull.rebase false  # merge
-          git pull boost-utils master --allow-unrelated-histories
+          git pull boost-utils master --allow-unrelated-histories || exit 0
 
       - name: Handle conflicts and create PR if needed
+        if: failure()
         env:
           GITHUB_TOKEN: ${{ secrets.ACTIONS_PAT }}
         run: |
-          set -e
-          git merge boost-utils/master --allow-unrelated-histories || ( \
-            git merge --abort && \
-            git checkout -b conflict-resolution && \
-            git add . && \
-            git commit -m "Resolve merge conflicts" && \
-            git push -u origin conflict-resolution && \
-            gh auth login --with-token <<<"${{ secrets.ACTIONS_PAT }}" && \
-            gh pr create --title "Resolve merge conflicts" --body "This PR resolves merge conflicts that occurred during the sync." --head conflict-resolution --base master \
-          )
+          git merge --abort
+          git checkout -b conflict-resolution
+          git add .
+          git commit -m "Resolve merge conflicts"
+          git push -u origin conflict-resolution
+          gh auth login --with-token <<<"${{ secrets.ACTIONS_PAT }}"
+          gh pr create --title "Resolve merge conflicts" --body "This PR resolves merge conflicts that occurred during the sync." --head conflict-resolution --base master
