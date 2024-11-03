@@ -43,7 +43,7 @@ jobs:
           git checkout -b conflict-resolution
           git add .
           git commit -m "Pull changes from BoostUtils"
-          git push -u origin conflict-resolution
+          git push -u origin conflict-resolution --force
 
       - name: Merge changes
         run: |
