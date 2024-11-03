@@ -35,6 +35,28 @@ jobs:
           git pull boost-utils master --allow-unrelated-histories
 
       - name: Merge changes
+        id: merge
         run: |
-          git merge boost-utils/master --allow-unrelated-histories
-          git push origin master
+          git merge boost-utils/main --allow-unrelated-histories || echo "Merge failed" >> $GITHUB_ENV
+          git push origin HEAD:main || echo "Push failed" >> $GITHUB_ENV
+
+      - name: Install GitHub CLI
+        if: env.MERGE_FAILED || env.PUSH_FAILED
+        run: |
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt update
+          sudo apt install gh
+
+      - name: Create Pull Request
+        if: env.MERGE_FAILED || env.PUSH_FAILED
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACTIONS_PAT }}
+        run: |
+          gh auth login --with-token <<<"${{ secrets.ACTIONS_PAT }}"
+          git checkout -b conflict-resolution
+          git add .
+          git commit -m "Resolve merge conflicts"
+          git push origin conflict-resolution
+          gh pr create --title "Resolve merge conflicts" --body "This PR resolves merge conflicts that occurred during the sync." --head conflict-resolution --base main
