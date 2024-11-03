@@ -21,9 +21,9 @@ jobs:
         run: |
           git remote add boost-utils https://github.com/Manuel-Materazzo/BoostUtils.git
           git fetch boost-utils
-          git pull boost-utils main
+          git pull boost-utils master
 
       - name: Merge changes
         run: |
-          git merge boost-utils/main
-          git push origin main
+          git merge boost-utils/master
+          git push origin master
