@@ -2,11 +2,7 @@ from abc import ABC, abstractmethod
 
 from pandas import DataFrame, Series
 
-<<<<<<< HEAD
-from src.trainer import Trainer
-=======
 from src.trainers.trainer import Trainer
->>>>>>> 851e3cd5579b762c7a05c46c0c0a671c3b781069
 
 
 class HyperparameterOptimizer(ABC):
@@ -43,11 +39,7 @@ class HyperparameterOptimizer(ABC):
         :param y:
         :return:
         """
-<<<<<<< HEAD
-        _, optimal_boosting_rounds = self.trainer.cross_validation(X, y, log_level=0, **self.params)
-=======
         _, optimal_boosting_rounds = self.trainer.validate_model(X, y, log_level=0, **self.params)
->>>>>>> 851e3cd5579b762c7a05c46c0c0a671c3b781069
         return optimal_boosting_rounds
 
     def space_to_params(self, space: dict) -> dict:
