@@ -42,6 +42,7 @@ jobs:
           git add .
 
       - name: Push changes to new branch
+        continue-on-error: true
         env:
           ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
         run: |
