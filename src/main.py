@@ -1,5 +1,6 @@
 import pandas as pd
 
+from src.enums.accuracy_metric import AccuracyMetric
 from src.pipelines.brist1d_blood_glucose_prediction_dt_pipeline import BrisT1DBloodGlucosePredictionDTPipeline
 
 from src.hyperparameter_optimizers.accurate_grid_optimizer import AccurateGridOptimizer
@@ -19,6 +20,7 @@ def load_data():
     data.dropna(axis=0, subset=['bg+1:00'])
     y = data['bg+1:00']
     X = data.drop(['bg+1:00'], axis=1)
+    X = X.drop(['id'], axis=1)
     return X, y
 
 
@@ -26,7 +28,7 @@ X, y = load_data()
 
 pipeline = BrisT1DBloodGlucosePredictionDTPipeline(X, True)
 
-trainer = AccurateCrossTrainer(pipeline)
+trainer = AccurateCrossTrainer(pipeline, AccuracyMetric.RMSE)
 
 # Create a cached trainer for the optimizer in order to speed up the optimization process
 # optimizer_trainer = CachedAccurateCrossTrainer(pipeline, X, y)

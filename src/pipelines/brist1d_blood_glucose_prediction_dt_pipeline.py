@@ -1,3 +1,4 @@
+import pandas as pd
 from pandas import DataFrame
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
@@ -35,6 +36,22 @@ class CustomImputer(BaseEstimator, TransformerMixin):
         return X
 
 
+class TimeTransformer(BaseEstimator, TransformerMixin):
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        # Create a copy to avoid altering the original data
+        X_copy = X.copy()
+
+        X_copy['hour'] = pd.to_datetime(X_copy['time'].values, format="%H:%M:%S").hour
+        X_copy['minute'] = pd.to_datetime(X_copy['time'].values, format="%H:%M:%S").minute
+        X_copy.drop(['time'], axis=1, inplace=True)
+
+        return X_copy
+
+
 class BackfillTransformer(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
@@ -51,10 +68,10 @@ class BackfillTransformer(BaseEstimator, TransformerMixin):
                 # get the metric name
                 metric_name = column.split("-")[0]
                 # get the array of existing columns with the same metrics (or create it) and add the current column
-                matric_columns_names = metric_columns.get(metric_name) or []
-                matric_columns_names.append(column)
+                metric_columns_names = metric_columns.get(metric_name) or []
+                metric_columns_names.append(column)
                 # save the new array on the dictionary
-                metric_columns[metric_name] = matric_columns_names
+                metric_columns[metric_name] = metric_columns_names
 
         # iterate metrics
         for key, value in metric_columns.items():
@@ -126,6 +143,7 @@ class BrisT1DBloodGlucosePredictionDTPipeline(DTPipeline):
     def build_pipeline(self) -> Pipeline | ColumnTransformer:
         # Bundle preprocessing
         return Pipeline(steps=[
+            ('transform_time_columns', TimeTransformer()),
             ('rename_columns', FunctionTransformer(self.rename_columns, validate=False)),
             ('fill_metric_columns', BackfillTransformer()),
             ('custom_imputate_metric_columns', CustomImputer()),
