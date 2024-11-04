@@ -143,7 +143,7 @@ class BrisT1DBloodGlucosePredictionDTPipeline(DTPipeline):
     def build_pipeline(self) -> Pipeline | ColumnTransformer:
         # Bundle preprocessing
         return Pipeline(steps=[
-            ('transform_time_columns', TimeTransformer()),
+            # ('transform_time_columns', TimeTransformer()),
             ('rename_columns', FunctionTransformer(self.rename_columns, validate=False)),
             ('fill_metric_columns', BackfillTransformer()),
             ('custom_imputate_metric_columns', CustomImputer()),
