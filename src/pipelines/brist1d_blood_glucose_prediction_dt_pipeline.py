@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from pandas import DataFrame
 from sklearn.impute import SimpleImputer
@@ -45,8 +46,18 @@ class TimeTransformer(BaseEstimator, TransformerMixin):
         # Create a copy to avoid altering the original data
         X_copy = X.copy()
 
-        X_copy['hour'] = pd.to_datetime(X_copy['time'].values, format="%H:%M:%S").hour
-        X_copy['minute'] = pd.to_datetime(X_copy['time'].values, format="%H:%M:%S").minute
+        # extract a hour and minute series
+        time_col = pd.to_datetime(X_copy['time'], format='%H:%M:%S')
+        hours = time_col.dt.hour
+        minutes = time_col.dt.minute
+
+        # create a hour sin and cos wave
+        X_copy['hour_sin'] = np.sin(2 * np.pi * hours / 24)
+        X_copy['hour_cos'] = np.cos(2 * np.pi * hours / 24)
+        # create a minute sin and cos wave
+        X_copy['minute_sin'] = np.sin(2 * np.pi * minutes / 60)
+        X_copy['minute_cos'] = np.cos(2 * np.pi * minutes / 60)
+        # remove time
         X_copy.drop(['time'], axis=1, inplace=True)
 
         return X_copy
@@ -143,7 +154,7 @@ class BrisT1DBloodGlucosePredictionDTPipeline(DTPipeline):
     def build_pipeline(self) -> Pipeline | ColumnTransformer:
         # Bundle preprocessing
         return Pipeline(steps=[
-            # ('transform_time_columns', TimeTransformer()),
+            ('transform_time_columns', TimeTransformer()),
             ('rename_columns', FunctionTransformer(self.rename_columns, validate=False)),
             ('fill_metric_columns', BackfillTransformer()),
             ('custom_imputate_metric_columns', CustomImputer()),
