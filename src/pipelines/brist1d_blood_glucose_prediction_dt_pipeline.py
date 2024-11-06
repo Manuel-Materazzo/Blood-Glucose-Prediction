@@ -33,10 +33,10 @@ class CustomImputer(BaseEstimator, TransformerMixin):
             if 'cals-' in column:
                 cals_columns.append(column)
 
-        X[steps_columns] = X[steps_columns].fillna(0)  # assume 0 steps when empty
-        X[carbs_columns] = X[carbs_columns].fillna(0)  # assume 0 carbohydrate intake when empty
-        X[cals_columns] = X[cals_columns].fillna(0)  # assume 0 calories burned when empty
-        X[activity_columns] = X[activity_columns].fillna("None")  # assume no activity when empty
+        X[steps_columns] = X[steps_columns].fillna(-1)  # assume 0 steps when empty
+        X[carbs_columns] = X[carbs_columns].fillna(-1)  # assume 0 carbohydrate intake when empty
+        X[cals_columns] = X[cals_columns].fillna(-1)  # assume 0 calories burned when empty
+        X[activity_columns] = X[activity_columns].fillna(-1)  # assume no activity when empty
 
         return X
 
