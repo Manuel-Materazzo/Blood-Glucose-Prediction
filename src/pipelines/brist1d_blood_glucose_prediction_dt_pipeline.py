@@ -20,6 +20,7 @@ class CustomImputer(BaseEstimator, TransformerMixin):
         steps_columns = []
         activity_columns = []
         carbs_columns = []
+        cals_columns = []
 
         for column in X.columns:
             # if the column is a metric with a survey time
@@ -29,9 +30,12 @@ class CustomImputer(BaseEstimator, TransformerMixin):
                 activity_columns.append(column)
             if 'carbs-' in column:
                 carbs_columns.append(column)
+            if 'cals-' in column:
+                cals_columns.append(column)
 
         X[steps_columns] = X[steps_columns].fillna(0)  # assume 0 steps when empty
         X[carbs_columns] = X[carbs_columns].fillna(0)  # assume 0 carbohydrate intake when empty
+        X[cals_columns] = X[cals_columns].fillna(0)  # assume 0 calories burned when empty
         X[activity_columns] = X[activity_columns].fillna("None")  # assume no activity when empty
 
         return X
@@ -63,7 +67,7 @@ class TimeTransformer(BaseEstimator, TransformerMixin):
         return X_copy
 
 
-class BackfillTransformer(BaseEstimator, TransformerMixin):
+class BackfillForwardFillTransformer(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         return self
@@ -154,9 +158,14 @@ class BrisT1DBloodGlucosePredictionDTPipeline(DTPipeline):
     def build_pipeline(self) -> Pipeline | ColumnTransformer:
         # Bundle preprocessing
         return Pipeline(steps=[
+            # sin cos time
             ('transform_time_columns', TimeTransformer()),
-            ('rename_columns', FunctionTransformer(self.rename_columns, validate=False)),
-            ('fill_metric_columns', BackfillTransformer()),
+            # 0fill some columns
             ('custom_imputate_metric_columns', CustomImputer()),
+            # change time format of column names
+            ('rename_columns', FunctionTransformer(self.rename_columns, validate=False)),
+            # backfill and forwardfill metric columns
+            ('fill_metric_columns', BackfillForwardFillTransformer()),
+            # impute remaining data
             ('preprocessor', FunctionTransformer(self.create_preprocessor, validate=False))
         ], memory=None)
