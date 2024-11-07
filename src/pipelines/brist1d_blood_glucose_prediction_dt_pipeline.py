@@ -9,6 +9,16 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 from src.pipelines.dt_pipeline import DTPipeline
 
+# Create a dictionary that maps each unique activity to a number, activities are sorted by their physical strain
+activity_dictionary = {'Yoga': 1, 'Walking': 2, 'Walk': 2, 'Dancing': 3, 'Zumba': 4, 'Strength training': 5,
+                       'Weights': 6, 'Aerobic Workout': 7, 'Workout': 8, 'HIIT': 9, 'Run': 10, 'Running': 10,
+                       'Bike': 11, 'Outdoor Bike': 11, 'Stairclimber': 12, 'Spinning': 13, 'Swim': 14, 'Swimming': 14,
+                       'Tennis': 15, 'Indoor climbing': 16, 'Hike': 17, 'Sport': 18}
+
+partecipants_dictionary = {'p01': 1, 'p02': 2, 'p03': 3, 'p04': 4, 'p05': 5, 'p06': 6, 'p07': 7, 'p08': 8, 'p09': 9,
+                           'p10': 10, 'p11': 11, 'p12': 12, 'p13': 13, 'p14': 14, 'p15': 15, 'p16': 16, 'p17': 17,
+                           'p18': 18, 'p19': 19, 'p20': 20, 'p21': 21, 'p22': 22, 'p23': 23, 'p24': 24}
+
 
 class CustomImputer(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
@@ -33,10 +43,15 @@ class CustomImputer(BaseEstimator, TransformerMixin):
             if 'cals-' in column:
                 cals_columns.append(column)
 
+        # apply static encoding for activities
+        for col in activity_columns:
+            # Assign values based on the dictionary and set -1 for empty values
+            X[col] = X[col].apply(lambda x: activity_dictionary.get(x, -1) if x != '' else -1)
+
         X[steps_columns] = X[steps_columns].fillna(0)  # assume 0 steps when empty
         X[carbs_columns] = X[carbs_columns].fillna(0)  # assume 0 carbohydrate intake when empty
         X[cals_columns] = X[cals_columns].fillna(0)  # assume 0 calories burned when empty
-        X[activity_columns] = X[activity_columns].fillna('None')  # assume no activity when empty
+        #X[activity_columns] = X[activity_columns].fillna('None')  # assume no activity when empty
 
         return X
 
@@ -160,8 +175,8 @@ class BrisT1DBloodGlucosePredictionDTPipeline(DTPipeline):
         return Pipeline(steps=[
             # sin cos time
             ('transform_time_columns', TimeTransformer()),
-            # 0fill some columns
-            # ('custom_imputate_metric_columns', CustomImputer()),
+            # 0fill some columns and map to dictionaries
+            ('custom_imputate_metric_columns', CustomImputer()),
             # change time format of column names
             ('rename_columns', FunctionTransformer(self.rename_columns, validate=False)),
             # backfill and forwardfill metric columns
