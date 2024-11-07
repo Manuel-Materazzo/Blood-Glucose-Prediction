@@ -1,6 +1,10 @@
-# **Blood Glucose Prediction**
+<div align="center">
+  <div>
+    <img src="https://www.kaggle.com/competitions/82611/images/header" width="400" alt="Warp" />
+  </div>
+    <h1>BrisT1D Blood Glucose Prediction</h1>
+</div>
 
-## 🚀 **Project Overview**
 Accurately predicting **blood glucose fluctuations** is a game-changer for managing **type 1 diabetes**. Innovative algorithms can significantly reduce the daily challenges faced by individuals with this condition. This project aims to harness the power of **machine learning** to forecast blood glucose levels one hour ahead using participant data from the previous six hours, collected via **T1D devices** and **smartwatches**.
 
 ## 🎯 **Problem Statement**
