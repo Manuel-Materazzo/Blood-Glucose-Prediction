@@ -161,7 +161,7 @@ class BrisT1DBloodGlucosePredictionDTPipeline(DTPipeline):
             # sin cos time
             ('transform_time_columns', TimeTransformer()),
             # 0fill some columns
-            ('custom_imputate_metric_columns', CustomImputer()),
+            # ('custom_imputate_metric_columns', CustomImputer()),
             # change time format of column names
             ('rename_columns', FunctionTransformer(self.rename_columns, validate=False)),
             # backfill and forwardfill metric columns
