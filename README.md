@@ -1,6 +1,6 @@
 <div align="center">
   <div>
-    <img src="https://www.kaggle.com/competitions/82611/images/header" width="400" alt="Warp" />
+    <img src="resources/logo.png" width="230" alt="Warp" />
   </div>
     <h1>BrisT1D Blood Glucose Prediction</h1>
 </div>
