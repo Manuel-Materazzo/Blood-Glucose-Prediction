@@ -53,7 +53,7 @@ jobs:
         run: |
           git branch -D conflict-resolution || true
           git checkout -b conflict-resolution
-          git add . ':!main.py'
+          git add .
           git reset src/pipelines/housing_prices_competition_dt_pipeline.py resources/ .github/ README.md 
           git commit -m "Pull changes from BoostUtils"
           git push -u origin conflict-resolution --force

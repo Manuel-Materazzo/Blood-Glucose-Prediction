@@ -4,7 +4,7 @@ from pandas import DataFrame
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, FunctionTransformer
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, FunctionTransformer, StandardScaler
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from src.pipelines.dt_pipeline import DTPipeline
@@ -33,9 +33,9 @@ class CustomImputer(BaseEstimator, TransformerMixin):
             if 'cals-' in column:
                 cals_columns.append(column)
 
-        X[steps_columns] = X[steps_columns].fillna(-1)  # assume 0 steps when empty
-        X[carbs_columns] = X[carbs_columns].fillna(-1)  # assume 0 carbohydrate intake when empty
-        X[cals_columns] = X[cals_columns].fillna(-1)  # assume 0 calories burned when empty
+        X[steps_columns] = X[steps_columns].fillna(0)  # assume 0 steps when empty
+        X[carbs_columns] = X[carbs_columns].fillna(0)  # assume 0 carbohydrate intake when empty
+        X[cals_columns] = X[cals_columns].fillna(0)  # assume 0 calories burned when empty
         X[activity_columns] = X[activity_columns].fillna('None')  # assume no activity when empty
 
         return X
@@ -167,5 +167,6 @@ class BrisT1DBloodGlucosePredictionDTPipeline(DTPipeline):
             # backfill and forwardfill metric columns
             ('fill_metric_columns', BackfillForwardFillTransformer()),
             # impute remaining data
-            ('preprocessor', FunctionTransformer(self.create_preprocessor, validate=False))
+            ('preprocessor', FunctionTransformer(self.create_preprocessor, validate=False)),
+            ('scale', StandardScaler()),
         ], memory=None)
