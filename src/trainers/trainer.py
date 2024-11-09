@@ -74,7 +74,7 @@ class Trainer(ABC):
         plt.show()
 
     def train_model(self, train_X: DataFrame, train_y: Series, val_X: DataFrame = None, val_y: Series = None,
-                    rounds=2000, **xgb_params) -> XGBRegressor:
+                    rounds=1000, **xgb_params) -> XGBRegressor:
         """
         Trains a XGBoost regressor on the provided training data.
         When validation data is provided, the model is trained with early stopping.
