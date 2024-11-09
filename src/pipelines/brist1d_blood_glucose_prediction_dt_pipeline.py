@@ -52,7 +52,7 @@ class CustomImputer(BaseEstimator, TransformerMixin):
 
         # apply static encoding for patients
         # Assign values based on the dictionary and set -1 for empty values
-        X['p_num'] = X['p_num'].apply(lambda x: partecipants_dictionary.get(x, -1) if x != '' else -1)
+        # X['p_num'] = X['p_num'].apply(lambda x: partecipants_dictionary.get(x, -1) if x != '' else -1)
 
         X[steps_columns] = X[steps_columns].fillna(0)  # assume 0 steps when empty
         X[carbs_columns] = X[carbs_columns].fillna(0)  # assume 0 carbohydrate intake when empty
@@ -180,8 +180,6 @@ class BrisT1DBloodGlucosePredictionDTPipeline(DTPipeline):
         return Pipeline(steps=[
             # sin cos time
             ('transform_time_columns', TimeTransformer()),
-            # 0fill some columns
-            # ('custom_imputate_metric_columns', CustomImputer()),
             # 0fill some columns and map to dictionaries
             ('custom_imputate_metric_columns', CustomImputer()),
             # change time format of column names
