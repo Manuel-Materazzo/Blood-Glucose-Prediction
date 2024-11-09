@@ -140,7 +140,10 @@ class BrisT1DBloodGlucosePredictionDTPipeline(DTPipeline):
         categorical_encoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
 
         # Preprocessing for numerical data
-        numerical_transformer = SimpleImputer(strategy='median')
+        numerical_transformer = Pipeline(steps=[
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scale', StandardScaler())
+        ], memory=None)
 
         # Preprocessing for categorical data
         categorical_transformer = Pipeline(steps=[
@@ -167,6 +170,5 @@ class BrisT1DBloodGlucosePredictionDTPipeline(DTPipeline):
             # backfill and forwardfill metric columns
             ('fill_metric_columns', BackfillForwardFillTransformer()),
             # impute remaining data
-            ('preprocessor', FunctionTransformer(self.create_preprocessor, validate=False)),
-            ('scale', StandardScaler()),
+            ('preprocessor', FunctionTransformer(self.create_preprocessor, validate=False))
         ], memory=None)
