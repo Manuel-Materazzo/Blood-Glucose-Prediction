@@ -111,7 +111,7 @@ class BackfillForwardFillTransformer(BaseEstimator, TransformerMixin):
         # iterate metrics
         for key, value in metric_columns.items():
             # Sort the metric columns in descending order
-            columns = sorted(value, key=lambda x: int(x.split('-')[1]), reverse=True)
+            columns = sorted(value, key=lambda x: x.split('-')[1], reverse=True)
 
             # Fill missing values using backfill (and forward fill if the latest values are empty)
             X[columns] = X[columns].bfill()
@@ -124,31 +124,11 @@ class BrisT1DBloodGlucosePredictionDTPipeline(DTPipeline):
     def __init__(self, X: DataFrame, imputation_enabled: bool):
         super().__init__(X, imputation_enabled)
 
-    def rename_columns(self, X):
+    def refresh_columns(self, X):
         """
-        Reformat metrics delta column names by replacing the time in hour:minutes into just minutes.
         :param X:
         :return:
         """
-        columns_to_rename = {}
-
-        for column in X.columns:
-            # if the column is a metric with a survey time
-            if '-' in column:
-                # split column name into metric - time
-                column_name_splits = column.split('-')
-                metric_name = column_name_splits[0]
-                survey_time_delta = column_name_splits[1]
-                # split time into hour : minute
-                survey_time_delta_splits = survey_time_delta.split(':')
-                # get the total delta minutes by summing 60*hours and the minutes
-                survey_time_delta_minutes = int(survey_time_delta_splits[0] * 60) + (int(survey_time_delta_splits[1]))
-                # save rename operation
-                new_column_name = metric_name + '-' + str(survey_time_delta_minutes)
-                columns_to_rename[column] = new_column_name
-
-        # rename all columns
-        X = X.rename(columns=columns_to_rename)
 
         self.categorical_cols = [cname for cname in X.columns if X[cname].dtype == "object"]
         self.numerical_cols = [cname for cname in X.columns if X[cname].dtype in ['int64', 'float64']]
@@ -182,8 +162,8 @@ class BrisT1DBloodGlucosePredictionDTPipeline(DTPipeline):
             ('transform_time_columns', TimeTransformer()),
             # 0fill some columns and map to dictionaries
             ('custom_imputate_metric_columns', CustomImputer()),
-            # change time format of column names
-            ('rename_columns', FunctionTransformer(self.rename_columns, validate=False)),
+            # refreshes column names
+            ('refresh_columns', FunctionTransformer(self.refresh_columns, validate=False)),
             # backfill and forwardfill metric columns
             ('fill_metric_columns', BackfillForwardFillTransformer()),
             # impute remaining data
