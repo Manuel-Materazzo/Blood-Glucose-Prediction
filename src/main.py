@@ -6,6 +6,7 @@ from xgboost import DMatrix, XGBRegressor
 from src.enums.accuracy_metric import AccuracyMetric
 from src.pipelines.brist1d_blood_glucose_prediction_dt_pipeline import BrisT1DBloodGlucosePredictionDTPipeline
 
+from src.models.xgb_regressor import XGBRegressorWrapper
 from src.hyperparameter_optimizers.accurate_grid_optimizer import AccurateGridOptimizer
 from src.hyperparameter_optimizers.balanced_grid_optimizer import BalancedGridOptimizer
 from src.hyperparameter_optimizers.fast_bayesian_optimizer import FastBayesianOptimizer
@@ -81,9 +82,12 @@ X, y = load_data()
 print("Saving data model...")
 save_data_model(X)
 
+# instantiate data pipeline
 pipeline = BrisT1DBloodGlucosePredictionDTPipeline(X, True)
 
-trainer = AccurateCrossTrainer(pipeline, AccuracyMetric.RMSE)
+# pick a model, and a trainer
+model_type = XGBRegressorWrapper()
+trainer = AccurateCrossTrainer(pipeline, model_type, AccuracyMetric.RMSE)
 
 # optimizing parameters worsens performance
 optimized_params = {
@@ -93,11 +97,11 @@ optimized_params = {
 }
 
 print("Training and evaluating model...")
-_, boost_rounds = trainer.validate_model(X, y, log_level=1, **optimized_params)
+_, boost_rounds = trainer.validate_model(X, y, log_level=1, params=optimized_params)
 
 # fit complete_model on all data from the training data
 print("Fitting complete model...")
-complete_model = trainer.train_model(X, y, rounds=boost_rounds, **optimized_params)
+complete_model = trainer.train_model(X, y, iterations=boost_rounds, params=optimized_params)
 
 # save trained pipeline on target directory
 print("Saving pipeline...")
