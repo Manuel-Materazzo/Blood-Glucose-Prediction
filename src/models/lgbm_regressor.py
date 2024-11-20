@@ -1,13 +1,12 @@
 import pandas as pd
 from pandas import DataFrame
 from hyperopt import hp
-from xgboost import XGBRegressor
-
+from lightgbm import LGBMRegressor, early_stopping
 
 from src.models.model_wrapper import ModelWrapper
 
 
-class XGBRegressorWrapper(ModelWrapper):
+class LGBMRegressorWrapper(ModelWrapper):
 
     def __init__(self):
         super().__init__()
@@ -17,21 +16,26 @@ class XGBRegressorWrapper(ModelWrapper):
             'random_state': 0,
             'n_estimators': iterations,
         })
-        return XGBRegressor(
+        return LGBMRegressor(
+            verbose=-1,
             **params
         )
 
     def get_starter_params(self) -> dict:
         return {
-            'objective': 'reg:squarederror',
+            'boosting_type': 'gbdt',
+            'force_col_wise': True,
+            'num_leaves': 31,
+            'max_depth': -1,
             'learning_rate': 0.1,
-            'max_depth': 5,
-            'min_child_weight': 1,
-            'gamma': 0,
-            'subsample': 0.8,
-            'colsample_bytree': 0.8,
-            'scale_pos_weight': 1,
-            'n_jobs': -1
+            'n_estimators': 100,
+            'min_child_samples': 20,
+            'reg_alpha': 0.0,
+            'reg_lambda': 0.0,
+            'colsample_bytree': 1.0,
+            'subsample': 1.0,
+            'n_jobs': -1,
+            'random_state': 0
         }
 
     def get_grid_space(self) -> list[dict]:
@@ -39,11 +43,7 @@ class XGBRegressorWrapper(ModelWrapper):
             {
                 'recalibrate_iterations': False,
                 'max_depth': range(3, 10),
-                'min_child_weight': range(1, 6)
-            },
-            {
-                'recalibrate_iterations': False,
-                'gamma': [i / 10.0 for i in range(0, 5)]
+                # 'min_child_weight': range(1, 6)
             },
             {
                 'recalibrate_iterations': True,
@@ -52,19 +52,22 @@ class XGBRegressorWrapper(ModelWrapper):
             },
             {
                 'recalibrate_iterations': False,
-                'reg_alpha': [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10, 50, 100]
+                'reg_alpha': [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10],
+                'reg_lambda': [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1]
             }
         ]
 
     def get_bayesian_space(self) -> dict:
         return {
-            'max_depth': hp.quniform("max_depth", 3, 10, 1),
-            'min_child_weight': hp.quniform('min_child_weight', 1, 6, 1),
-            'gamma': hp.uniform('gamma', 0, 0.5),
-            'colsample_bytree': hp.uniform('colsample_bytree', 0.5, 1),
-            'subsample': hp.uniform('subsample', 0.5, 1),
+            "num_leaves": hp.quniform("num_leaves", 10, 150, 1),
+            "max_depth": hp.quniform("max_depth", 3, 12, 1),
+            "min_child_samples": hp.quniform("min_child_samples", 5, 100, 1),
+            "subsample": hp.uniform("subsample", 0.5, 1.0),
+            "colsample_bytree": hp.uniform("colsample_bytree", 0.5, 1.0),
+            # "reg_alpha": trial.suggest_loguniform("reg_alpha", 1e-3, 10.0),
+            # "reg_lambda": trial.suggest_loguniform("reg_lambda", 1e-3, 10.0),
             'reg_alpha': hp.uniform('reg_alpha', 0, 10),
-            'reg_lambda': hp.uniform('reg_lambda', 0, 1),
+            'reg_lambda': hp.uniform('reg_lambda', 0, 1)
         }
 
     def fit(self, X, y, iterations, params=None):
@@ -74,7 +77,7 @@ class XGBRegressorWrapper(ModelWrapper):
             'n_estimators': iterations,
         })
 
-        self.model: XGBRegressor = XGBRegressor(
+        self.model: LGBMRegressor = LGBMRegressor(
             **params
         )
 
@@ -85,25 +88,26 @@ class XGBRegressorWrapper(ModelWrapper):
         params.update({
             'random_state': 0,
             'n_estimators': 2000,
-            'early_stopping_rounds': 5,
         })
-        self.model: XGBRegressor = XGBRegressor(
+        self.model: LGBMRegressor = LGBMRegressor(
             **params
         )
-        self.model.fit(train_X, train_y, eval_set=[(validation_X, validation_y)], verbose=False)
+        self.model.fit(train_X, train_y, eval_set=[(validation_X, validation_y)], callbacks=[
+            early_stopping(stopping_rounds=5),
+        ])
 
     def predict(self, X) -> any:
         return self.model.predict(X)
 
     def get_best_iteration(self) -> int:
-        return self.model.best_iteration
+        return self.model.best_iteration_
 
     def get_loss(self) -> dict[str, dict[str, list[float]]]:
         if self.model is None:
             print("ERROR: No model has been fitted")
             return {}
 
-        return self.model.evals_result()
+        return self.model.evals_result_
 
     def get_feature_importance(self, features) -> DataFrame:
         if self.model is None:
