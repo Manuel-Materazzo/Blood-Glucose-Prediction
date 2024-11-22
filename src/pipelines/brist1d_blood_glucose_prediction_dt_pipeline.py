@@ -34,13 +34,13 @@ class CustomImputer(BaseEstimator, TransformerMixin):
 
         for column in X.columns:
             # if the column is a metric with a survey time
-            if 'steps-' in column:
+            if 'steps_' in column:
                 steps_columns.append(column)
-            if 'activity-' in column:
+            if 'activity_' in column:
                 activity_columns.append(column)
-            if 'carbs-' in column:
+            if 'carbs_' in column:
                 carbs_columns.append(column)
-            if 'cals-' in column:
+            if 'cals_' in column:
                 cals_columns.append(column)
 
         X[activity_columns] = X[activity_columns].fillna('None')  # assume no activity when empty
@@ -99,9 +99,9 @@ class BackfillForwardFillTransformer(BaseEstimator, TransformerMixin):
         # create a dictionary of metrics and their corresponding columns
         metric_columns = {}
         for column in X.columns:
-            if '-' in column:
+            if '_' in column:
                 # get the metric name
-                metric_name = column.split("-")[0]
+                metric_name = column.split("_")[0]
                 # get the array of existing columns with the same metrics (or create it) and add the current column
                 metric_columns_names = metric_columns.get(metric_name) or []
                 metric_columns_names.append(column)
@@ -111,7 +111,7 @@ class BackfillForwardFillTransformer(BaseEstimator, TransformerMixin):
         # iterate metrics
         for key, value in metric_columns.items():
             # Sort the metric columns in descending order
-            columns = sorted(value, key=lambda x: x.split('-')[1], reverse=True)
+            columns = sorted(value, key=lambda x: '_'.join(x.split('_')[1:]), reverse=True)
 
             # Fill missing values using backfill (and forward fill if the latest values are empty)
             X[columns] = X[columns].bfill()
