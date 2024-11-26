@@ -2,14 +2,16 @@ import itertools
 
 from pandas import DataFrame, Series
 
+from src.enums.optimization_direction import OptimizationDirection
 from src.hyperparameter_optimizers.hp_optimizer import HyperparameterOptimizer
 from src.models.model_wrapper import ModelWrapper
 from src.trainers.trainer import Trainer
 
 
 class CustomGridOptimizer(HyperparameterOptimizer):
-    def __init__(self, trainer: Trainer, model_wrapper: ModelWrapper):
-        super().__init__(trainer, model_wrapper)
+    def __init__(self, trainer: Trainer, model_wrapper: ModelWrapper,
+                 direction: OptimizationDirection = OptimizationDirection.MINIMIZE):
+        super().__init__(trainer, model_wrapper, direction=direction)
 
     def tune(self, X: DataFrame, y: Series, final_lr: float) -> dict:
         """
@@ -59,29 +61,37 @@ class CustomGridOptimizer(HyperparameterOptimizer):
         param_combinations = [dict(zip(param_grid, v)) for v in itertools.product(*param_grid.values())]
 
         best_params = None
-        best_score = float('inf')
         results = []
+
+        if self.direction == OptimizationDirection.MINIMIZE:
+            best_score = float('inf')
+        elif self.direction == OptimizationDirection.MAXIMIZE:
+            best_score = 0
+        else:
+            print("ERROR: optimization direction not valid")
+            return {}
 
         for params in param_combinations:
 
             full_params = self.params.copy()
             full_params.update(params)
 
-            mae, _ = self.trainer.validate_model(X, y, log_level=0, iterations=optimal_boosting_rounds,
-                                                 params=full_params)
-            results.append((params, mae))
+            accuracy, _ = self.trainer.validate_model(X, y, log_level=0, iterations=optimal_boosting_rounds,
+                                                      params=full_params)
+            results.append((params, accuracy))
 
-            if mae < best_score:
-                best_score = mae
+            if (self.direction == OptimizationDirection.MINIMIZE and (accuracy < best_score)) or \
+                    (self.direction == OptimizationDirection.MAXIMIZE and (accuracy > best_score)):
+                best_score = accuracy
                 best_params = params
 
         if log_level > 0:
             print("Best parameters found: ", best_params)
-            print("Best MAE: {}".format(best_score))
+            print("Best acciracy: {}".format(best_score))
 
         if log_level > 1:
             # Print all results
-            for params, mae in results:
-                print(f"Parameters: {params}, MAE: {mae}")
+            for params, accuracy in results:
+                print(f"Parameters: {params}, MAE: {accuracy}")
 
         return best_params

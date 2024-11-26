@@ -2,16 +2,19 @@ from abc import ABC, abstractmethod
 
 from pandas import DataFrame, Series
 
+from src.enums.optimization_direction import OptimizationDirection
 from src.models.model_wrapper import ModelWrapper
 from src.trainers.trainer import Trainer
 
 
 class HyperparameterOptimizer(ABC):
 
-    def __init__(self, trainer: Trainer, model_wrapper: ModelWrapper):
+    def __init__(self, trainer: Trainer, model_wrapper: ModelWrapper,
+                 direction: OptimizationDirection = OptimizationDirection.MINIMIZE):
         self.trainer: Trainer = trainer
         self.model_wrapper: ModelWrapper = model_wrapper
         self.params: dict = model_wrapper.get_starter_params()
+        self.direction: OptimizationDirection = direction
 
     @abstractmethod
     def tune(self, X: DataFrame, y: Series, final_lr: float) -> dict:

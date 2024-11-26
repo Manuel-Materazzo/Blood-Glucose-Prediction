@@ -1,13 +1,12 @@
 import pandas as pd
 from pandas import DataFrame
 from hyperopt import hp
-from xgboost import XGBRegressor
-
+from xgboost import XGBClassifier
 
 from src.models.model_wrapper import ModelWrapper
 
 
-class XGBRegressorWrapper(ModelWrapper):
+class XGBClassifierWrapper(ModelWrapper):
 
     def __init__(self):
         super().__init__()
@@ -17,13 +16,14 @@ class XGBRegressorWrapper(ModelWrapper):
             'random_state': 0,
             'n_estimators': iterations,
         })
-        return XGBRegressor(
+        return XGBClassifier(
             **params
         )
 
     def get_starter_params(self) -> dict:
         return {
-            'objective': 'reg:squarederror',
+            'objective': 'binary:logistic',
+            'eval_metric': 'auc',
             'learning_rate': 0.1,
             'max_depth': 5,
             'min_child_weight': 1,
@@ -74,7 +74,7 @@ class XGBRegressorWrapper(ModelWrapper):
             'n_estimators': iterations,
         })
 
-        self.model: XGBRegressor = XGBRegressor(
+        self.model: XGBClassifier = XGBClassifier(
             **params
         )
 
@@ -87,7 +87,7 @@ class XGBRegressorWrapper(ModelWrapper):
             'n_estimators': 2000,
             'early_stopping_rounds': 5,
         })
-        self.model: XGBRegressor = XGBRegressor(
+        self.model: XGBClassifier = XGBClassifier(
             **params
         )
         self.model.fit(train_X, train_y, eval_set=[(validation_X, validation_y)], verbose=False)
@@ -95,8 +95,8 @@ class XGBRegressorWrapper(ModelWrapper):
     def predict(self, X) -> any:
         return self.model.predict(X)
 
-    def predict_proba(self, X):
-        print("ERROR: predict_proba called on a regression model")
+    def predict_proba(self, X) -> any:
+        return self.model.predict_proba(X)[:, 1]
 
     def get_best_iteration(self) -> int:
         return self.model.best_iteration
