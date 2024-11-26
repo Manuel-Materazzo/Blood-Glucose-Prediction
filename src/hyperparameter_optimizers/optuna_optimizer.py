@@ -2,17 +2,24 @@ import optuna
 import platform
 import optuna_distributed
 from pandas import DataFrame, Series
+
+from src.enums.optimization_direction import OptimizationDirection
 from src.hyperparameter_optimizers.hp_optimizer import HyperparameterOptimizer
 from src.models.model_wrapper import ModelWrapper
 from src.trainers.trainer import Trainer
 
 
 class OptunaOptimizer(HyperparameterOptimizer):
-    def __init__(self, trainer: Trainer, model_wrapper: ModelWrapper):
-        super().__init__(trainer, model_wrapper)
+    def __init__(self, trainer: Trainer, model_wrapper: ModelWrapper,
+                 direction: OptimizationDirection = OptimizationDirection.MINIMIZE):
+        super().__init__(trainer, model_wrapper, direction=direction)
         self.y = None
         self.X = None
+        self.study = None
         self.domain_space = model_wrapper.get_bayesian_space()
+
+    def show_param_importance(self):
+        optuna.visualization.plot_param_importances(self.study)
 
     def tune(self, X: DataFrame, y: Series, final_lr: float) -> dict:
         """
@@ -26,12 +33,12 @@ class OptunaOptimizer(HyperparameterOptimizer):
         self.X = X
         self.y = y
 
-        study = optuna.create_study(direction='minimize')
+        self.study = optuna.create_study(direction=self.direction.value.lower())
         # leverage distributed training on linux
         if platform.system() != 'Windows':
-            study = optuna_distributed.from_study(study)
-        study.optimize(self.__objective, n_trials=100, n_jobs=-1)
-        self.params.update(study.best_params)
+            self.study = optuna_distributed.from_study(self.study)
+        self.study.optimize(self.__objective, n_trials=100, n_jobs=-1)
+        self.params.update(self.study.best_params)
 
         self.params['learning_rate'] = final_lr
 

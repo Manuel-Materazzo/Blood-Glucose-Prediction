@@ -50,28 +50,28 @@ class CachedAccurateCrossTrainer(Trainer):
 
         # if no rounds, train with early stopping
         if iterations is None:
-            self.model = self.trainer.train_model(split[0], split[2], split[1], split[3], params=params)
+            self.trainer.train_model(split[0], split[2], split[1], split[3], params=params)
         # else train normally
         else:
-            self.model = self.trainer.train_model(split[0], split[2], iterations=iterations, params=params)
+            self.trainer.train_model(split[0], split[2], iterations=iterations, params=params)
 
-        # re-process val_X to obtain MAE
+        # re-process val_X to obtain accuracy
         processed_val_X = self.trainer.pipeline.transform(split[1])
 
-        # Predict and calculate MAE
-        predictions = self.model.predict(processed_val_X)
+        # Predict and calculate accuracy
+        predictions = self.get_predictions(processed_val_X)
         accuracy = self.calculate_accuracy(predictions, split[3])
 
         try:
-            # number of boosting rounds used in the best model, MAE
-            return self.model.get_best_iteration(), accuracy
+            # number of boosting rounds used in the best model, accuracy
+            return self.model_wrapper.get_best_iteration(), accuracy
         # if the model was trained without early stopping, return the provided training rounds
         except AttributeError:
             return iterations, accuracy
 
     def validate_model(self, X: DataFrame, y: Series, log_level=2, iterations=None, params=None) -> (float, int):
 
-        # Placeholder for cross-validation MAE scores
+        # Placeholder for cross-validation accuracy scores
         cv_scores = []
         best_rounds = []
 
@@ -102,7 +102,7 @@ class CachedAccurateCrossTrainer(Trainer):
                 print("Pruned Optimal Boosting Rounds: ", pruned_optimal_boost_rounds)
                 print(best_rounds)
 
-        # Cross validate model with the optimal boosting round, to check on MAE discrepancies
+        # Cross validate model with the optimal boosting round, to check on accuracy discrepancies
         if iterations is None and log_level > 0:
             print("Generating {} with optimal boosting rounds".format(self.metric.value))
             self.validate_model(X, y, iterations=optimal_boost_rounds, log_level=1, params=params)

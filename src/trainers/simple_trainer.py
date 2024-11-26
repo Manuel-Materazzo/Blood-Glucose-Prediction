@@ -28,11 +28,11 @@ class SimpleTrainer(Trainer):
         train_X, val_X, train_y, val_y = train_test_split(X, y, random_state=0)
         # Get trained model
         self.evals = []
-        self.model_wrapper = self.train_model(train_X, train_y, val_X, val_y, params=params)
+        self.train_model(train_X, train_y, val_X, val_y, params=params)
         # preprocess validation data
         processed_val_X = pd.DataFrame(self.pipeline.transform(val_X))
         # Predict validation y using validation X
-        predictions = self.model_wrapper.predict(processed_val_X)
+        predictions = self.get_predictions(processed_val_X)
         # Calculate accuracy
         accuracy = self.calculate_accuracy(predictions, val_y)
         if log_level > 0:
