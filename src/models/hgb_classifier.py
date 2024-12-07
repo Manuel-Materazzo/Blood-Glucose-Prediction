@@ -1,16 +1,18 @@
 import pandas as pd
 from pandas import DataFrame
 from hyperopt import hp
-from xgboost import XGBClassifier
 
 from src.enums.objective import Objective
 from src.models.model_wrapper import ModelWrapper
+from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.inspection import permutation_importance
 
 
-class XGBClassifierWrapper(ModelWrapper):
+class HGBClassifierWrapper(ModelWrapper):
 
     def __init__(self):
         super().__init__()
+        self.importances = None
 
     def get_objective(self) -> Objective:
         return Objective.CLASSIFICATION
@@ -18,24 +20,22 @@ class XGBClassifierWrapper(ModelWrapper):
     def get_base_model(self, iterations, params):
         params.update({
             'random_state': 0,
-            'n_estimators': iterations,
         })
-        return XGBClassifier(
+        return HistGradientBoostingClassifier(
             **params
         )
 
     def get_starter_params(self) -> dict:
         return {
-            'objective': 'binary:logistic',
-            'eval_metric': 'auc',
+            'loss': 'log_loss',
+            'random_state': 0,
             'learning_rate': 0.1,
-            'max_depth': 5,
-            'min_child_weight': 1,
-            'gamma': 0,
-            'subsample': 0.8,
-            'colsample_bytree': 0.8,
-            'scale_pos_weight': 1,
-            'n_jobs': -1
+            'max_depth': None,
+            'max_leaf_nodes': 31,
+            'min_samples_leaf': 20,
+            'l2_regularization': 0.0,
+            'max_features': 1.0,
+            'max_bins': 255
         }
 
     def get_grid_space(self) -> list[dict]:
@@ -43,85 +43,76 @@ class XGBClassifierWrapper(ModelWrapper):
             {
                 'recalibrate_iterations': False,
                 'max_depth': list(range(3, 10)),
-                'min_child_weight': list(range(1, 6))
+                'min_samples_leaf': list(range(20, 101, 20))
             },
             {
                 'recalibrate_iterations': False,
-                'gamma': [i / 10.0 for i in range(0, 5)]
-            },
-            {
-                'recalibrate_iterations': True,
-                'subsample': [i / 100.0 for i in range(60, 100, 5)],
-                'colsample_bytree': [i / 100.0 for i in range(60, 100, 5)]
+                'max_bins': [255, 300, 400, 500]
             },
             {
                 'recalibrate_iterations': False,
-                'reg_alpha': [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10, 50, 100]
+                'l2_regularization': [0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1]
             }
         ]
 
     def get_bayesian_space(self) -> dict:
         return {
+            'max_leaf_nodes': hp.quniform("max_leaf_nodes", 31, 100, 1),
             'max_depth': hp.quniform("max_depth", 3, 10, 1),
-            'min_child_weight': hp.quniform('min_child_weight', 1, 6, 1),
-            'gamma': hp.uniform('gamma', 0, 0.5),
-            'colsample_bytree': hp.uniform('colsample_bytree', 0.5, 1),
-            'subsample': hp.uniform('subsample', 0.5, 1),
-            'reg_alpha': hp.uniform('reg_alpha', 0, 10),
-            'reg_lambda': hp.uniform('reg_lambda', 0, 1),
+            'min_samples_leaf': hp.quniform("min_samples_leaf", 20, 100, 1),
+            'l2_regularization': hp.uniform("l2_regularization", 0.0, 1.0),
+            'max_features': hp.uniform("max_features", 0.5, 1.0),
+            'max_bins': hp.quniform("max_bins", 2, 255, 1)
         }
 
     def fit(self, X, y, iterations, params=None):
-        params = params or {}
-        params = params.copy()
-        params.update({
-            'random_state': 0,
-            'n_estimators': iterations,
-        })
-
-        self.model: XGBClassifier = XGBClassifier(
-            **params
-        )
-
-        self.model.fit(X, y)
+        self.train_until_optimal(X, None, y, None, params=params)
 
     def train_until_optimal(self, train_X, validation_X, train_y, validation_y, params=None):
         params = params or {}
         params = params.copy()
         params.update({
             'random_state': 0,
-            'n_estimators': 2000,
-            'early_stopping_rounds': 5,
+            'max_iter': 2000,
+            'early_stopping': True,
+            'n_iter_no_change': 10
         })
-        self.model: XGBClassifier = XGBClassifier(
+
+        self.model: HistGradientBoostingClassifier = HistGradientBoostingClassifier(
             **params
         )
-        self.model.fit(train_X, train_y, eval_set=[(validation_X, validation_y)], verbose=False)
+        # HistGradientBoostingRegressor has built in cross validation set extraction,
+        # and won't need validation sets for early stopping.
+        # Avoid merging in validation_X and validation_y, as it will cause Train data leakage when cross validating.
+        self.model.fit(train_X, train_y)
+        self.importances = permutation_importance(self.model, train_X, train_y, n_repeats=10, random_state=0)
 
     def predict(self, X) -> any:
         return self.model.predict(X)
 
-    def predict_proba(self, X) -> any:
+    def predict_proba(self, X):
         return self.model.predict_proba(X)[:, 1]
 
     def get_best_iteration(self) -> int:
-        return self.model.best_iteration
+        return self.model.n_iter_
 
     def get_loss(self) -> dict[str, dict[str, list[float]]]:
         if self.model is None:
             print("ERROR: No model has been fitted")
             return {}
 
-        return self.model.evals_result()
+        return {
+            'validation_0': {
+                'rmse': abs(self.model.validation_score_) / 10000
+            }
+        }
 
     def get_feature_importance(self, features) -> DataFrame:
-        if self.model is None:
+        if self.importances is None:
             print("ERROR: No model has been fitted")
             return pd.DataFrame()
 
-        importances = self.model.feature_importances_
-
         # sort and merge importances and column names into a dataframe
-        feature_importances = sorted(zip(importances, features), reverse=True)
+        feature_importances = sorted(zip(self.importances.importances_mean, features), reverse=True)
         sorted_importances, sorted_features = zip(*feature_importances)
         return pd.DataFrame({'feats': sorted_features[:50], 'importance': sorted_importances[:50]})

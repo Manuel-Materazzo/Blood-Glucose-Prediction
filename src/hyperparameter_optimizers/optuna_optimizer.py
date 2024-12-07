@@ -16,6 +16,7 @@ class OptunaOptimizer(HyperparameterOptimizer):
         self.y = None
         self.X = None
         self.study = None
+        self.trials = 100
         self.domain_space = model_wrapper.get_bayesian_space()
 
     def show_param_importance(self):
@@ -37,7 +38,7 @@ class OptunaOptimizer(HyperparameterOptimizer):
         # leverage distributed training on linux
         if platform.system() != 'Windows':
             self.study = optuna_distributed.from_study(self.study)
-        self.study.optimize(self.__objective, n_trials=100, n_jobs=-1)
+        self.study.optimize(self.__objective, n_trials=self.trials)
         self.params.update(self.study.best_params)
 
         self.params['learning_rate'] = final_lr
@@ -69,5 +70,5 @@ class OptunaOptimizer(HyperparameterOptimizer):
                 case 'quniform':
                     octuna_space[param_name] = trial.suggest_int(param_name, param_low_arg, param_high_arg)
 
-        mae, _ = self.trainer.validate_model(self.X, self.y, log_level=0, params=octuna_space)
-        return mae
+        accuracy, _, _ = self.trainer.validate_model(self.X, self.y, log_level=0, params=octuna_space)
+        return accuracy

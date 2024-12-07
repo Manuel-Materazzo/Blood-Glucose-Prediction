@@ -6,8 +6,10 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from pandas import DataFrame, Series
 from sklearn.metrics import confusion_matrix, mean_absolute_error, mean_squared_error, roc_auc_score, accuracy_score
+from sklearn.model_selection import KFold, StratifiedGroupKFold, StratifiedKFold, GroupKFold
 
 from src.enums.accuracy_metric import AccuracyMetric
+from src.enums.objective import Objective
 from src.models.model_inference_wrapper import ModelInferenceWrapper
 from src.models.model_wrapper import ModelWrapper
 from src.pipelines.dt_pipeline import DTPipeline
@@ -36,10 +38,12 @@ def load_model() -> ModelInferenceWrapper:
 
 
 class Trainer(ABC):
-    def __init__(self, pipeline: DTPipeline, model_wrapper: ModelWrapper, metric: AccuracyMetric = AccuracyMetric.MAE):
+    def __init__(self, pipeline: DTPipeline, model_wrapper: ModelWrapper, metric: AccuracyMetric = AccuracyMetric.MAE,
+                 grouping_columns: list[str] = None):
         self.pipeline: DTPipeline = pipeline
         self.metric: AccuracyMetric = metric
         self.model_wrapper = model_wrapper
+        self.grouping_columns = grouping_columns
         self.evals: [] = []
 
     def get_pipeline(self) -> DTPipeline:
@@ -52,6 +56,23 @@ class Trainer(ABC):
     def get_model_name(self) -> str:
         return type(self.model_wrapper).__name__
 
+    def get_kfold_type(self) -> any:
+        """
+        Gets the type of kfold used for training based on model parameters.
+        :return:
+        """
+        if self.model_wrapper.get_objective() == Objective.REGRESSION:
+            if self.grouping_columns is not None:
+                return GroupKFold(n_splits=5)
+            else:
+                return KFold(n_splits=5, random_state=0, shuffle=True)
+        elif self.model_wrapper.get_objective() == Objective.CLASSIFICATION:
+            if self.grouping_columns is not None:
+                return StratifiedGroupKFold(n_splits=5, random_state=0, shuffle=True)
+            else:
+                return StratifiedKFold(n_splits=5, random_state=0, shuffle=True)
+
+
     def show_feature_importance(self, X: DataFrame):
         # Apply the same trasformations as the training process
         processed_X = self.pipeline.transform(X)
@@ -60,9 +81,15 @@ class Trainer(ABC):
         features = list(processed_X.columns)
         importance_df = self.model_wrapper.get_feature_importance(features)
 
+        # Convert to percentage
+        total_importance = importance_df['importance'].sum()
+        importance_df['importance'] = importance_df['importance'] / total_importance * 100
+
         print(importance_df)
         # plot it!
         plt.figure(figsize=(12, 8))
+        plt.xlabel('Importance %')
+        plt.ylabel('Feature Type__Name')
         sns.barplot(data=importance_df, x='importance', y='feats')
         plt.show()
 
@@ -80,10 +107,11 @@ class Trainer(ABC):
 
         # add a line to the plot for each training done
         for eval_round in self.evals:
-            accuracy_metric_name = next(iter(eval_round['validation_0']))
-            epochs = len(eval_round['validation_0'][accuracy_metric_name])
+            validation_name = next(iter(eval_round))
+            accuracy_metric_name = next(iter(eval_round[validation_name]))
+            epochs = len(eval_round[validation_name][accuracy_metric_name])
             x_axis = range(0, epochs)
-            plt.plot(x_axis, eval_round['validation_0'][accuracy_metric_name], label='Split-{}'.format(i))
+            plt.plot(x_axis, eval_round[validation_name][accuracy_metric_name], label='Split-{}'.format(i))
             i = i + 1
 
         plt.legend()
@@ -117,8 +145,18 @@ class Trainer(ABC):
         return self.model_wrapper
 
     @abstractmethod
-    def validate_model(self, X: DataFrame, y: Series, log_level=1, iterations=None, params=None) -> (float, int):
-        pass
+    def validate_model(self, X: DataFrame, y: Series, log_level=1, iterations=None, params=None,
+                       output_prediction_comparison=False) -> (float, int, DataFrame):
+        """
+        Validates the model.
+        :param X:
+        :param y:
+        :param log_level:
+        :param iterations:
+        :param params:
+        :param output_prediction_comparison:
+        :return:
+        """
 
     def get_predictions(self, X: DataFrame) -> Series:
         if self.metric == AccuracyMetric.AUC:

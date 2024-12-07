@@ -1,13 +1,13 @@
 import pandas as pd
 from pandas import DataFrame
 from hyperopt import hp
-from xgboost import XGBClassifier
+from catboost import CatBoostClassifier
 
 from src.enums.objective import Objective
 from src.models.model_wrapper import ModelWrapper
 
 
-class XGBClassifierWrapper(ModelWrapper):
+class CatBoostClassifierWrapper(ModelWrapper):
 
     def __init__(self):
         super().__init__()
@@ -18,57 +18,56 @@ class XGBClassifierWrapper(ModelWrapper):
     def get_base_model(self, iterations, params):
         params.update({
             'random_state': 0,
-            'n_estimators': iterations,
+            'iterations': iterations,
         })
-        return XGBClassifier(
-            **params
+        return CatBoostClassifier(
+            **params,
+            silent=True
         )
 
     def get_starter_params(self) -> dict:
         return {
-            'objective': 'binary:logistic',
-            'eval_metric': 'auc',
+            'loss_function': 'Logloss',
+            # 'bootstrap_type': 'Bayesian',  # removed, let catboost decide
+            'grow_policy': 'SymmetricTree',
+            'bagging_temperature': 0.50,
             'learning_rate': 0.1,
-            'max_depth': 5,
-            'min_child_weight': 1,
-            'gamma': 0,
-            'subsample': 0.8,
-            'colsample_bytree': 0.8,
-            'scale_pos_weight': 1,
-            'n_jobs': -1
+            'depth': 6,
+            'l2_leaf_reg': 1.25,  # was 3.0
+            'min_data_in_leaf': 24,
+            # 'random_strength': 0.25, # ignored, prevents overfitting, but it's not mandatory
+            'thread_count': -1
         }
 
     def get_grid_space(self) -> list[dict]:
         return [
             {
                 'recalibrate_iterations': False,
-                'max_depth': list(range(3, 10)),
-                'min_child_weight': list(range(1, 6))
-            },
-            {
-                'recalibrate_iterations': False,
-                'gamma': [i / 10.0 for i in range(0, 5)]
+                'depth': [4, 6, 8, 10],
+                'l2_leaf_reg': [1, 3, 5, 7, 9]
             },
             {
                 'recalibrate_iterations': True,
-                'subsample': [i / 100.0 for i in range(60, 100, 5)],
-                'colsample_bytree': [i / 100.0 for i in range(60, 100, 5)]
+                'bagging_temperature': [0.1, 0.5, 1, 2],
+                # 'subsample': [0.6, 0.8, 1.0] # bayesian bootstrap doesn't support 'subsample' option
             },
             {
                 'recalibrate_iterations': False,
-                'reg_alpha': [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10, 50, 100]
+                'random_strength': [0, 0.5, 1, 2, 5]
             }
         ]
 
     def get_bayesian_space(self) -> dict:
         return {
-            'max_depth': hp.quniform("max_depth", 3, 10, 1),
-            'min_child_weight': hp.quniform('min_child_weight', 1, 6, 1),
-            'gamma': hp.uniform('gamma', 0, 0.5),
-            'colsample_bytree': hp.uniform('colsample_bytree', 0.5, 1),
-            'subsample': hp.uniform('subsample', 0.5, 1),
-            'reg_alpha': hp.uniform('reg_alpha', 0, 10),
-            'reg_lambda': hp.uniform('reg_lambda', 0, 1),
+            'depth': hp.quniform('depth', 4, 10, 1),
+            'l2_leaf_reg': hp.uniform('l2_leaf_reg', 0, 10),
+            # 'l2_leaf_reg': Real(1e-2, 10, prior='log-uniform'),
+            'bagging_temperature': hp.uniform('bagging_temperature', 0.1, 2.0),
+            # 'subsample': hp.uniform('subsample', 0.5, 1.0, ), # bayesian bootstrap doesn't support 'subsample' option
+            'colsample_bylevel': hp.uniform('colsample_bylevel', 0.5, 1.0),
+            'random_strength': hp.uniform('random_strength', 0, 10),
+            'min_data_in_leaf': hp.quniform('min_data_in_leaf', 1, 100, 1),
+            'max_bin': hp.quniform('max_bin', 100, 500, 1)
         }
 
     def fit(self, X, y, iterations, params=None):
@@ -76,43 +75,45 @@ class XGBClassifierWrapper(ModelWrapper):
         params = params.copy()
         params.update({
             'random_state': 0,
-            'n_estimators': iterations,
+            'iterations': iterations,
         })
 
-        self.model: XGBClassifier = XGBClassifier(
-            **params
+        self.model: CatBoostClassifier = CatBoostClassifier(
+            **params,
+            silent=True
         )
 
-        self.model.fit(X, y)
+        self.model.fit(X, y, silent=True)
 
     def train_until_optimal(self, train_X, validation_X, train_y, validation_y, params=None):
         params = params or {}
         params = params.copy()
         params.update({
             'random_state': 0,
-            'n_estimators': 2000,
+            'iterations': 2000,
             'early_stopping_rounds': 5,
         })
-        self.model: XGBClassifier = XGBClassifier(
-            **params
+        self.model: CatBoostClassifier = CatBoostClassifier(
+            **params,
+            silent=True
         )
-        self.model.fit(train_X, train_y, eval_set=[(validation_X, validation_y)], verbose=False)
+        self.model.fit(train_X, train_y, eval_set=[(validation_X, validation_y)], silent=True)
 
     def predict(self, X) -> any:
         return self.model.predict(X)
 
-    def predict_proba(self, X) -> any:
+    def predict_proba(self, X):
         return self.model.predict_proba(X)[:, 1]
 
     def get_best_iteration(self) -> int:
-        return self.model.best_iteration
+        return self.model.get_best_iteration()
 
     def get_loss(self) -> dict[str, dict[str, list[float]]]:
         if self.model is None:
             print("ERROR: No model has been fitted")
             return {}
 
-        return self.model.evals_result()
+        return self.model.evals_result_
 
     def get_feature_importance(self, features) -> DataFrame:
         if self.model is None:

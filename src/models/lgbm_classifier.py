@@ -1,26 +1,26 @@
 import pandas as pd
 from pandas import DataFrame
 from hyperopt import hp
-from lightgbm import LGBMRegressor, early_stopping
+from lightgbm import LGBMClassifier, early_stopping
 
 from src.enums.objective import Objective
 from src.models.model_wrapper import ModelWrapper
 
 
-class LGBMRegressorWrapper(ModelWrapper):
+class LGBMClassifierWrapper(ModelWrapper):
 
     def __init__(self):
         super().__init__()
 
     def get_objective(self) -> Objective:
-        return Objective.REGRESSION
+        return Objective.CLASSIFICATION
 
     def get_base_model(self, iterations, params):
         params.update({
             'random_state': 0,
             'n_estimators': iterations,
         })
-        return LGBMRegressor(
+        return LGBMClassifier(
             verbose=-1,
             **params
         )
@@ -87,7 +87,7 @@ class LGBMRegressorWrapper(ModelWrapper):
             'n_estimators': iterations,
         })
 
-        self.model: LGBMRegressor = LGBMRegressor(
+        self.model: LGBMClassifier = LGBMClassifier(
             **params
         )
 
@@ -100,7 +100,7 @@ class LGBMRegressorWrapper(ModelWrapper):
             'random_state': 0,
             'n_estimators': 2000,
         })
-        self.model: LGBMRegressor = LGBMRegressor(
+        self.model: LGBMClassifier = LGBMClassifier(
             **params
         )
         self.model.fit(train_X, train_y, eval_set=[(validation_X, validation_y)], callbacks=[
@@ -111,7 +111,7 @@ class LGBMRegressorWrapper(ModelWrapper):
         return self.model.predict(X)
 
     def predict_proba(self, X):
-        print("ERROR: predict_proba called on a regression model")
+        return self.model.predict_proba(X)[:, 1]
 
     def get_best_iteration(self) -> int:
         return self.model.best_iteration_
