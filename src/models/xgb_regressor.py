@@ -3,7 +3,7 @@ from pandas import DataFrame
 from hyperopt import hp
 from xgboost import XGBRegressor
 
-
+from src.enums.objective import Objective
 from src.models.model_wrapper import ModelWrapper
 
 
@@ -11,6 +11,9 @@ class XGBRegressorWrapper(ModelWrapper):
 
     def __init__(self):
         super().__init__()
+
+    def get_objective(self) -> Objective:
+        return Objective.REGRESSION
 
     def get_base_model(self, iterations, params):
         params.update({
@@ -38,8 +41,8 @@ class XGBRegressorWrapper(ModelWrapper):
         return [
             {
                 'recalibrate_iterations': False,
-                'max_depth': range(3, 10),
-                'min_child_weight': range(1, 6)
+                'max_depth': list(range(3, 10)),
+                'min_child_weight': list(range(1, 6))
             },
             {
                 'recalibrate_iterations': False,
@@ -68,7 +71,8 @@ class XGBRegressorWrapper(ModelWrapper):
         }
 
     def fit(self, X, y, iterations, params=None):
-        params = params.copy() or {}
+        params = params or {}
+        params = params.copy()
         params.update({
             'random_state': 0,
             'n_estimators': iterations,
@@ -81,7 +85,8 @@ class XGBRegressorWrapper(ModelWrapper):
         self.model.fit(X, y)
 
     def train_until_optimal(self, train_X, validation_X, train_y, validation_y, params=None):
-        params = params.copy() or {}
+        params = params or {}
+        params = params.copy()
         params.update({
             'random_state': 0,
             'n_estimators': 2000,

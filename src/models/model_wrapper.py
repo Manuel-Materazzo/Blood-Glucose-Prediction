@@ -1,4 +1,6 @@
 from abc import abstractmethod
+
+from src.enums.objective import Objective
 from src.models.model_inference_wrapper import ModelInferenceWrapper
 
 
@@ -11,6 +13,13 @@ class ModelWrapper(ModelInferenceWrapper):
         self.model = None
 
     @abstractmethod
+    def get_objective(self) -> Objective:
+        """
+        Returns the model default objective.
+        :return:
+        """
+
+    @abstractmethod
     def get_base_model(self, iterations, params) -> any:
         """
         Trains the model for the given number of iterations.
@@ -18,7 +27,6 @@ class ModelWrapper(ModelInferenceWrapper):
         :param params:
         :return:
         """
-        pass
 
     @abstractmethod
     def get_starter_params(self) -> dict:
@@ -26,7 +34,6 @@ class ModelWrapper(ModelInferenceWrapper):
         Gets a dictionary of parameters that are considered a "starting point" for optimization.
         :return:
         """
-        pass
 
     @abstractmethod
     def get_grid_space(self) -> list[dict]:
@@ -34,7 +41,6 @@ class ModelWrapper(ModelInferenceWrapper):
         Gets the parameter space for gridsearch model optimization.
         :return:
         """
-        pass
 
     @abstractmethod
     def get_bayesian_space(self) -> dict:
@@ -42,7 +48,6 @@ class ModelWrapper(ModelInferenceWrapper):
         Gets the parameter space for bayesian model optimization.
         :return:
         """
-        pass
 
     @abstractmethod
     def train_until_optimal(self, train_X, validation_X, train_y, validation_y, params) -> int:
@@ -55,7 +60,6 @@ class ModelWrapper(ModelInferenceWrapper):
         :param validation_y:
         :return:
         """
-        pass
 
     @abstractmethod
     def fit(self, X, y, iterations, params):
@@ -67,20 +71,29 @@ class ModelWrapper(ModelInferenceWrapper):
         :param iterations:
         :return:
         """
-        pass
 
     @abstractmethod
     def predict(self, X):
-        pass
+        """
+        Predicts the target for the given input data.
+        :param X:
+        :return:
+        """
 
     @abstractmethod
     def predict_proba(self, X):
-        pass
-
+        """
+        Predicts the target probability for the given input data.
+        :param X:
+        :return:
+        """
 
     @abstractmethod
     def get_best_iteration(self) -> int:
-        pass
+        """
+        Gets the best iteration for the validation run.
+        :return:
+        """
 
     @abstractmethod
     def get_loss(self) -> dict[str, dict[str, list[float]]]:
@@ -88,7 +101,6 @@ class ModelWrapper(ModelInferenceWrapper):
         Returns the training loss function as a dictionary.
         :return:
         """
-        pass
 
     @abstractmethod
     def get_feature_importance(self, features):
@@ -96,4 +108,3 @@ class ModelWrapper(ModelInferenceWrapper):
         Returns the feature importance of the provided columns.
         :return:
         """
-        pass

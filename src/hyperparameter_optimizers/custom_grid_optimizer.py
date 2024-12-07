@@ -30,6 +30,8 @@ class CustomGridOptimizer(HyperparameterOptimizer):
         # get a list of spaces to optimize using sequential steps
         for step_space in self.model_wrapper.get_grid_space():
 
+            step_space = step_space.copy()
+
             # recalibrate iteration if needed
             if step_space['recalibrate_iterations']:
                 optimal_br = self.get_optimal_boost_rounds(X, y)
@@ -51,7 +53,6 @@ class CustomGridOptimizer(HyperparameterOptimizer):
                          log_level=1) -> dict:
         """
         Trains cross-validated model for each combination of the provided hyperparameters, and picks the best based on MAE
-        :param pipeline:
         :param X:
         :param y:
         :param param_grid:
@@ -76,7 +77,7 @@ class CustomGridOptimizer(HyperparameterOptimizer):
             full_params = self.params.copy()
             full_params.update(params)
 
-            accuracy, _ = self.trainer.validate_model(X, y, log_level=0, iterations=optimal_boosting_rounds,
+            accuracy, _, _ = self.trainer.validate_model(X, y, log_level=0, iterations=optimal_boosting_rounds,
                                                       params=full_params)
             results.append((params, accuracy))
 
@@ -87,7 +88,7 @@ class CustomGridOptimizer(HyperparameterOptimizer):
 
         if log_level > 0:
             print("Best parameters found: ", best_params)
-            print("Best acciracy: {}".format(best_score))
+            print("Best accuracy: {}".format(best_score))
 
         if log_level > 1:
             # Print all results

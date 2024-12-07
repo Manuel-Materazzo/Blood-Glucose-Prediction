@@ -3,13 +3,17 @@ from pandas import DataFrame
 from hyperopt import hp
 from catboost import CatBoostRegressor
 
+from src.enums.objective import Objective
 from src.models.model_wrapper import ModelWrapper
 
 
-class CatBoostWrapper(ModelWrapper):
+class CatBoostRegressorWrapper(ModelWrapper):
 
     def __init__(self):
         super().__init__()
+
+    def get_objective(self) -> Objective:
+        return Objective.REGRESSION
 
     def get_base_model(self, iterations, params):
         params.update({
@@ -24,11 +28,14 @@ class CatBoostWrapper(ModelWrapper):
     def get_starter_params(self) -> dict:
         return {
             'loss_function': 'RMSE',
-            'bootstrap_type': 'Bayesian',
+            # 'bootstrap_type': 'Bayesian',  # removed, let catboost decide
             'grow_policy': 'SymmetricTree',
+            'bagging_temperature': 0.50,
             'learning_rate': 0.1,
             'depth': 6,
-            'l2_leaf_reg': 3.0,
+            'l2_leaf_reg': 1.25,  # was 3.0
+            'min_data_in_leaf': 24,
+            # 'random_strength': 0.25, # ignored, prevents overfitting, but it's not mandatory
             'thread_count': -1
         }
 
@@ -64,7 +71,8 @@ class CatBoostWrapper(ModelWrapper):
         }
 
     def fit(self, X, y, iterations, params=None):
-        params = params.copy() or {}
+        params = params or {}
+        params = params.copy()
         params.update({
             'random_state': 0,
             'iterations': iterations,
@@ -78,7 +86,8 @@ class CatBoostWrapper(ModelWrapper):
         self.model.fit(X, y, silent=True)
 
     def train_until_optimal(self, train_X, validation_X, train_y, validation_y, params=None):
-        params = params.copy() or {}
+        params = params or {}
+        params = params.copy()
         params.update({
             'random_state': 0,
             'iterations': 2000,

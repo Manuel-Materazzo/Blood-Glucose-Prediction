@@ -13,7 +13,8 @@ from src.utils.json_utils import map_dtype
 
 
 def load_pipeline() -> any:
-    with open('../target/pipeline.pkl', 'rb') as file:
+    path = os.path.dirname(os.path.realpath(__file__)) + '/../../target/pipeline.pkl'
+    with open(path, 'rb') as file:
         return pickle.load(file)
 
 
@@ -43,7 +44,10 @@ class DTPipeline(ABC):
 
     @abstractmethod
     def build_pipeline(self) -> Pipeline | ColumnTransformer:
-        pass
+        """
+        Builds the pipeline
+        :return:
+        """
 
     def fit_transform(self, dataframe: DataFrame) -> DataFrame:
         """
@@ -51,6 +55,7 @@ class DTPipeline(ABC):
         :param dataframe:
         :return:
         """
+        set_config(transform_output="pandas")
         imputed_dataframe = pd.DataFrame(self.pipeline.fit_transform(dataframe))
         return imputed_dataframe
 
@@ -78,7 +83,7 @@ class DTPipeline(ABC):
     def find_one_hot_encoder(self, transformer):
         """
         Checks if the pipeline contains one hot encoder and returns the instance.
-        :param pipeline:
+        :param transformer:
         :return:
         """
         if isinstance(transformer, Pipeline):
@@ -87,7 +92,7 @@ class DTPipeline(ABC):
                 if result is not None:
                     return result
         elif isinstance(transformer, ColumnTransformer):
-            for name, trans, columns in transformer.transformers_:
+            for name, trans, columns in transformer.transformers:
                 result = self.find_one_hot_encoder(trans)
                 if result is not None:
                     return result
