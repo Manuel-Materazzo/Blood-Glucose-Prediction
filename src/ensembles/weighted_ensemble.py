@@ -5,7 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from functools import partial
 from pandas import DataFrame, Series
-from sklearn.model_selection import train_test_split
 
 from src.ensembles.ensemble import EnsembleMember, Ensemble
 
@@ -14,16 +13,18 @@ class WeightedEnsemble(Ensemble):
 
     def __init__(self, members: list[EnsembleMember]):
         super().__init__(members)
+        self.trials = 4000
 
-    def post_validation_callback(self, X: DataFrame, y: Series):
+    def post_validation_callback(self, X: DataFrame, y: Series, oof_predictions: DataFrame):
         """
         Callback to optimize weights when done training. Do not call manually.
+        :param oof_predictions:
         :param X:
         :param y:
         :return:
         """
         print("Optimizing ensemble weights...")
-        self.__optimize_weights(X, y)
+        self._optimize_weights(oof_predictions, y)
 
     def show_weights(self):
         """
@@ -37,49 +38,24 @@ class WeightedEnsemble(Ensemble):
             return
 
         # Pie chart
-        weights = self.weights[self.weights >= 0.005]  # hide small weights in pie chart
-        plt.pie(weights, labels=weights.index, autopct="%.0f%%")
+        plt.pie(self.weights, labels=self.weights.index, autopct="%.0f%%")
         plt.title('Ensemble weights')
         plt.show()
 
-    def __optimize_weights(self, X: DataFrame, y: Series):
+    def _optimize_weights(self, oof_predictions: DataFrame, y: Series):
         """
         Trains each model of the ensemble on half of the provided data, and calculates the optimal ensemble weights.
-        :param X:
+        :param oof_predictions:
         :param y:
         :return:
         """
-        # Split into validation and training data
-        train_X, val_X, train_y, val_y = train_test_split(X, y, random_state=0)
 
-        predictions_array = []
-        model_names = []
-
-        # train each model in the ensemble
-        for member in self.members:
-            trainer = member['trainer']
-            params = member['params']
-            optimizer = member['optimizer']
-
-            # if we have an optimizer set and no params are provided, calculate optimal params
-            if optimizer is not None and params is None:
-                print("No hyperparams provided, auto-optimizing...")
-                params = optimizer.tune(X, y, 0.03)
-                # save optimized params for later (full training)
-                member['params'] = params
-                print("Optimal hyperparams: {}".format(params))
-
-            model_names.append(trainer.get_model_name())
-
-            # train the model using early stopping (validation data is not used during training)
-            model = trainer.train_model(train_X, train_y, val_X, val_y, params=params)
-            # process validation data
-            processed_val_X = trainer.get_pipeline().transform(val_X)
-            # make predictions and store them
-            predictions_array.append(model.predict(processed_val_X))
+        # extract arrays from predictions dataframe
+        model_names = oof_predictions.columns
+        predictions_array = [oof_predictions[col].values for col in model_names]
 
         # optimize weights to maximize prediction accuracy
-        raw_weights = self._optuna_weight_study(val_y, predictions_array)
+        raw_weights = self._optuna_weight_study(y, predictions_array)
         self.weights: Series = Series(raw_weights, index=model_names)
 
     def _optuna_weight_study(self, real_values: Series, predictions_array: list) -> list:
@@ -101,7 +77,7 @@ class WeightedEnsemble(Ensemble):
             study = optuna_distributed.from_study(study)
         # define an objective and start the study
         objective_partial = partial(self._objective, real_values=real_values, predictions_array=predictions_array)
-        study.optimize(objective_partial, n_trials=4000, n_jobs=-1)
+        study.optimize(objective_partial, n_trials=self.trials, n_jobs=-1)
         # get weights
         return [study.best_params[f"weight{n}"] for n in range(len(predictions_array))]
 
@@ -125,7 +101,8 @@ class WeightedEnsemble(Ensemble):
 
     def predict(self, X: DataFrame) -> Series:
         if len(self.weights) == 0:
-            print("No weights provided, use optimize_weights() first")
+            print("Weights are still not optimized."
+                  "This probably means the validation was skipped or the callback is set incorrectly.")
             return Series([])
 
         if len(self.models) == 0:
