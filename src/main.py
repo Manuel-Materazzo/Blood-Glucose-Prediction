@@ -4,7 +4,6 @@ from sklearn.model_selection import cross_val_score
 from xgboost import DMatrix, XGBRegressor
 
 from src.enums.accuracy_metric import AccuracyMetric
-from src.pipelines.brist1d_blood_glucose_prediction_dt_pipeline import BrisT1DBloodGlucosePredictionDTPipeline
 
 from src.models.xgb_regressor import XGBRegressorWrapper
 from src.hyperparameter_optimizers.accurate_grid_optimizer import AccurateGridOptimizer
@@ -12,6 +11,8 @@ from src.hyperparameter_optimizers.balanced_grid_optimizer import BalancedGridOp
 from src.hyperparameter_optimizers.fast_bayesian_optimizer import FastBayesianOptimizer
 from src.hyperparameter_optimizers.optuna_optimizer import OptunaOptimizer
 from src.pipelines.dt_pipeline import save_data_model
+from src.pipelines.empty_dt_pipeline import EmptyDTPipeline
+from src.preprocessors.blood_glucose_prediction_data_preprocessor import BloodGlucoseDataPreprocessor
 
 from src.trainers.accurate_cross_trainer import AccurateCrossTrainer
 from src.trainers.trainer import save_model
@@ -82,8 +83,12 @@ X, y = load_data()
 print("Saving data model...")
 save_data_model(X)
 
-# instantiate data pipeline
-pipeline = BrisT1DBloodGlucosePredictionDTPipeline(X, True)
+# instantiate data pipeline and preprocessor
+preprocessor = BloodGlucoseDataPreprocessor()
+pipeline = EmptyDTPipeline(X, True)
+
+# preprocess data
+preprocessor.preprocess_data(X)
 
 # pick a model, and a trainer
 model_type = XGBRegressorWrapper()
@@ -102,6 +107,10 @@ _, boost_rounds = trainer.validate_model(X, y, log_level=1, params=optimized_par
 # fit complete_model on all data from the training data
 print("Fitting complete model...")
 complete_model = trainer.train_model(X, y, iterations=boost_rounds, params=optimized_params)
+
+# save preprocessor on target directory
+print("Saving preprocessor...")
+preprocessor.save_preprocessor()
 
 # save trained pipeline on target directory
 print("Saving pipeline...")
