@@ -1,7 +1,10 @@
 <div align="center">
-  <div>
-    <img src="resources/logo.png" width="230" alt="Warp" />
-  </div>
+    <div>
+        <img src="resources/logo.png" width="230" alt="Warp" />
+    </div>
+    <div>
+        <img src="resources/uob.jpg" width="120" alt="Warp" /> 
+    </div>
     <h1>BrisT1D Blood Glucose Prediction</h1>
 </div>
 
