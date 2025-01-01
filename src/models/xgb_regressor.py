@@ -88,7 +88,7 @@ class XGBRegressorWrapper(ModelWrapper):
         params = params.copy()
         params.update({
             'random_state': 0,
-            'n_estimators': 20000,
+            'n_estimators': 2000,
             'early_stopping_rounds': self.early_stopping_rounds,
         })
         self.model: XGBRegressor = XGBRegressor(
