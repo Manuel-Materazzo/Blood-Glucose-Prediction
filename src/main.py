@@ -55,8 +55,8 @@ save_data_model(X)
 pipeline = EmptyDTPipeline(X)
 
 # pick a model, and a trainer
-model_type = XGBRegressorWrapper(early_stopping_rounds=250)
-trainer = AccurateCrossTrainer(pipeline, model_type, AccuracyMetric.RMSE, grouping_columns=['p_num'])
+model_type = XGBRegressorWrapper()
+trainer = AccurateCrossTrainer(pipeline, model_type, AccuracyMetric.RMSE)
 
 # optimizing parameters worsens performance and takes too much time
 optimized_params = {
