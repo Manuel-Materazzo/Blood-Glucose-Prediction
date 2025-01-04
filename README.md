@@ -38,3 +38,23 @@ Here's a breakdown of the columns in the dataset:
 - **`cals-X:XX`**: Total calories burned in the last 5 minutes from X:XX in the past
 - **`activity-X:XX`**: Self-declared activity performed in the last 5 minutes from X:XX in the past
 - **`bg+1:00`**: Blood glucose reading (mmol/L) one hour in the future (the target variable)
+
+## 📝 **Results**
+Training the predictive model provided significant insights on the possible approaches to blood glucose prediction. <br>
+Early feature importance analysis has shown that the prediction is influenced only by data at most 1 hour in the past.<br>
+We can seize this opportunity to change the problem statement and increase our dataset size by 6 times.
+
+### 🏆 **Competition Result**
+The model was tested against an unseen set of data, with 15 new patients, and scored RMSE 2.5664 on [this](https://www.kaggle.com/competitions/brist1d/overview) competition.<br> 
+This performance is just 0.1653 RMSE away from the top solution in terms of accuracy.
+
+### 📉 **Cross validation Loss Graph**
+Cross validation RMSE loss shows homogeneous accuracy of ~1.537 over all 5 folds.
+![Cross validation Loss Graph](resources/loss.png)
+
+By Leveraging Grouped KFolds by patient number, we can evaluate model accuracy over each patient.
+![Grouped Cross validation Loss Graph](resources/loss_grouping.png)
+
+### 🌟 **Feature Importance**
+The feature importance graph highlights the most influential factors in predicting blood glucose. This allows us to identify key contributors and understand which variables have the most significant impact on our model's predictions.
+![Feature Importance Graph](resources/importance.png)
