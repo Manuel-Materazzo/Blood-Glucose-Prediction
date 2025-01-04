@@ -177,6 +177,27 @@ def create_features(df):
     return df
 
 
+def transform_time(X):
+    # extract a hour and minute series
+    if not is_datetime(X['time']):
+        X['time'] = pd.to_datetime(X['time'], format='%H:%M:%S')
+    X["hour"] = X['time'].dt.hour
+    X["minute"] = X['time'].dt.minute
+
+    # create half day sin cos wave
+    X['sin_halfday'] = np.sin(2 * np.pi * X['hour'] / 12)
+    X['cos_halfday'] = np.cos(2 * np.pi * X['hour'] / 12)
+    # create a hour sin and cos wave
+    X['hour_sin'] = np.sin(2 * np.pi * X["hour"] / 24)
+    X['hour_cos'] = np.cos(2 * np.pi * X["hour"] / 24)
+    # create a minute sin and cos wave
+    X['minute_sin'] = np.sin(2 * np.pi * X["minute"] / 60)
+    X['minute_cos'] = np.cos(2 * np.pi * X["minute"] / 60)
+
+    # remove time
+    X.drop(['time'], axis=1, inplace=True)
+
+
 def encode_and_0fill(X):
     steps_columns = []
     activity_columns = []
@@ -189,8 +210,8 @@ def encode_and_0fill(X):
             steps_columns.append(column)
         if 'activity_' in column:
             activity_columns.append(column)
-        # if 'carbs_' in column:
-        #    carbs_columns.append(column)
+        if 'carbs_' in column:
+            carbs_columns.append(column)
         if 'cals_' in column:
             cals_columns.append(column)
 
@@ -236,54 +257,19 @@ def fill_time_series(X):
         X[columns] = X[columns].ffill()
 
 
-def transform_time(X):
-    # extract a hour and minute series
-    if not is_datetime(X['time']):
-        X['time'] = pd.to_datetime(X['time'], format='%H:%M:%S')
-    X["hour"] = X['time'].dt.hour
-    X["minute"] = X['time'].dt.minute
-
-    # create half day sin cos wave
-    X['sin_halfday'] = np.sin(2 * np.pi * X['hour'] / 12)
-    X['cos_halfday'] = np.cos(2 * np.pi * X['hour'] / 12)
-    # create a hour sin and cos wave
-    X['hour_sin'] = np.sin(2 * np.pi * X["hour"] / 24)
-    X['hour_cos'] = np.cos(2 * np.pi * X["hour"] / 24)
-    # create a minute sin and cos wave
-    X['minute_sin'] = np.sin(2 * np.pi * X["minute"] / 60)
-    X['minute_cos'] = np.cos(2 * np.pi * X["minute"] / 60)
-
-    # remove time
-    X.drop(['time'], axis=1, inplace=True)
-
-
-def drop_features(X):
-    # drop carbs
-    X.drop([c for c in X.columns if 'carbs' in c], axis=1, inplace=True)
-
-
-def delete_strong_correlated_columns(X):
-    # reduce  overfitting, strong correlations between nearest timestep features
-    X.drop([f'bg_{i}' for i in range(12) if i % 2 != 0], axis=1, inplace=True)
-
-
 class BloodGlucoseDataPreprocessor(DataPreprocessor):
 
     def preprocess_data(self, X):
-        drop_features(X)
         encode_and_0fill(X)
         fill_time_series(X)
         drop_prediction_columns(X)
         create_features(X)
         transform_time(X)
-        delete_strong_correlated_columns(X)
 
     def preprocess_train_data(self, X):
-        drop_features(X)
         encode_and_0fill(X)
         fill_time_series(X)
         X = split_data(X)
         create_features(X)
         transform_time(X)
-        delete_strong_correlated_columns(X)
         return X
