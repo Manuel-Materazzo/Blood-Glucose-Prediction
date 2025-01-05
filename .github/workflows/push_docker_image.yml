@@ -1,0 +1,37 @@
+name: Deploy API Image to GHCR
+
+on:
+  workflow_dispatch:
+
+
+jobs:
+  push-store-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: 'Checkout GitHub Action'
+        uses: actions/checkout@main
+
+      - name: 'Login to GitHub Container Registry'
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+
+      - name: 'Download dataset'
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: 'Manuel-Materazzo/build-files'
+          version: 'main'
+          regex: true
+          file: "brist1d/.*\\.csv"
+          target: 'resources/brist1d/'
+          token: ${{secrets.GITHUB_TOKEN}}
+
+      - name: 'Build Image'
+        run: |
+          docker build . --tag ghcr.io/manuel-materazzo/blood-glucose-prediction:latest
+          docker push ghcr.io/manuel-materazzo/blood-glucose-prediction:latest
