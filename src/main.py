@@ -15,7 +15,7 @@ from src.trainers.trainer import save_model
 
 def load_data():
     # Load the data
-    file_path = '/kaggle/input/brist1d/train.csv'
+    file_path = '../resources/brist1d/train.csv'
     data = pd.read_csv(file_path, index_col='id')
 
     # Remove rows with missing target, separate target from predictors
