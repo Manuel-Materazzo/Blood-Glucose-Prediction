@@ -25,9 +25,9 @@ jobs:
         uses: dsaltares/fetch-gh-release-asset@master
         with:
           repo: 'Manuel-Materazzo/build-files'
-          version: 'main'
+          version: 'tags/brist1d'
           regex: true
-          file: "brist1d/.*\\.csv"
+          file: ".*\\.csv"
           target: 'resources/brist1d/'
           token: ${{secrets.GITHUB_TOKEN}}
 
