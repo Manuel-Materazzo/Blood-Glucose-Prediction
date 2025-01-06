@@ -25,7 +25,7 @@ jobs:
         uses: dsaltares/fetch-gh-release-asset@master
         with:
           repo: 'Manuel-Materazzo/build-files'
-          version: 'tags/brist1d-target-v2'
+          version: 'tags/brist1d-target-v3'
           regex: true
           file: ".*\\.json|.*\\.pkl"
           target: 'target/'
