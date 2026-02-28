@@ -39,8 +39,10 @@ class ModelWrapperBase(unittest.TestCase):
         if self.model is not None:
             self.model.model = None
             self.model.importances = None
-            self.assertFalse(self.model.get_loss())
-            self.assertTrue(self.model.get_feature_importance(self.X).empty)
+            with self.assertRaises((ValueError, RuntimeError)):
+                self.model.get_loss()
+            with self.assertRaises((ValueError, RuntimeError)):
+                self.model.get_feature_importance(self.X)
 
     def test_optimal_fit_and_statistical_methods(self):
         if self.model is not None:
@@ -54,7 +56,7 @@ class ModelWrapperBase(unittest.TestCase):
 
     def test_fit_and_predict(self):
         if self.model is not None:
-            pipeline = HousingPricesCompetitionDTPipeline(self.X, True)
+            pipeline = HousingPricesCompetitionDTPipeline(self.X)
             train_X = pipeline.fit_transform(self.X)
 
             self.model.fit(train_X, self.y, 10)
@@ -63,7 +65,7 @@ class ModelWrapperBase(unittest.TestCase):
             self.assertIsNotNone(predictions)
 
     def _train_test_split(self):
-        pipeline = HousingPricesCompetitionDTPipeline(self.X, True)
+        pipeline = HousingPricesCompetitionDTPipeline(self.X)
 
         train_X, val_X, train_y, val_y = train_test_split(self.X, self.y, random_state=0)
         train_X = pipeline.fit_transform(train_X)

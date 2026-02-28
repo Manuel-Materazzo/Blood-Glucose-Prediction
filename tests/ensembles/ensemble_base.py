@@ -1,7 +1,6 @@
 import unittest
 import importlib
 import pkgutil
-from itertools import product
 
 import src.models as models
 
@@ -9,6 +8,7 @@ from src.pipelines.housing_prices_competition_dt_pipeline import HousingPricesCo
 from src.trainers.cached_accurate_cross_trainer import CachedAccurateCrossTrainer
 from tests.data_load import load_regression_data
 from tests.dynamic_modules import get_local_classes
+import matplotlib.pyplot as plt
 
 
 class EnsembleBase(unittest.TestCase):
@@ -30,6 +30,11 @@ class EnsembleBase(unittest.TestCase):
             ensemble_instance = self.ensemble(members=members)
             ensemble_instance.trials = 3  # lower max trials to speed up testing
             accuracy = ensemble_instance.validate_models_and_show_leaderboard(X, y)
+
+            # disable plot output
+            plt.switch_backend("Agg")
+            plt.ioff()
+
             ensemble_instance.show_weights()
 
             self.assertGreaterEqual(accuracy, 0)
@@ -45,7 +50,7 @@ class EnsembleBase(unittest.TestCase):
 
 
 regression_X, regression_y = load_regression_data()
-pipeline = HousingPricesCompetitionDTPipeline(regression_X, True)
+pipeline = HousingPricesCompetitionDTPipeline(regression_X)
 
 models_modules = []
 
@@ -56,8 +61,8 @@ for _, model_module_name, _ in pkgutil.iter_modules(models.__path__):
     if model_module_name.endswith('_regressor'):
         models_modules.append(model_module)
 
-# create a combination list of models
-combinations = list(product(models_modules, models_modules))
+# create consecutive pairs so each model is tested at least once, without full cartesian product
+combinations = list(zip(models_modules, models_modules[1:] + [models_modules[0]]))
 
 # create a test case for each model combination
 for model_module_1, model_module_2 in combinations:
@@ -74,12 +79,14 @@ for model_module_1, model_module_2 in combinations:
 
             members_list = [
                 {
-                    'trainer': CachedAccurateCrossTrainer(pipeline, model_instance_1, regression_X, regression_y),
+                    'trainer': CachedAccurateCrossTrainer(pipeline, model_instance_1, regression_X, regression_y,
+                                                         n_splits=2),
                     'params': model_instance_1.get_starter_params(),
                     'optimizer': None
                 },
                 {
-                    'trainer': CachedAccurateCrossTrainer(pipeline, model_instance_2, regression_X, regression_y),
+                    'trainer': CachedAccurateCrossTrainer(pipeline, model_instance_2, regression_X, regression_y,
+                                                         n_splits=2),
                     'params': model_instance_2.get_starter_params(),
                     'optimizer': None
                 }

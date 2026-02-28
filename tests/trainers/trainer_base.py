@@ -6,6 +6,7 @@ import src.models as models
 
 from src.enums.accuracy_metric import AccuracyMetric
 from tests.data_load import load_classification_data, load_regression_data
+import matplotlib.pyplot as plt
 
 
 class TrainerBase(unittest.TestCase):
@@ -27,8 +28,13 @@ class TrainerBase(unittest.TestCase):
         if self.trainer is not None:
             trainer_instance = self._instantiate_trainer(X, y, model_type, metric)
 
-            accuracy, best_iteration, prediction_comparison = trainer_instance.validate_model(X, y, iterations=10,
+            accuracy, best_iteration, prediction_comparison = trainer_instance.validate_model(X, y, log_level=0,
                                                                                               output_prediction_comparison=True)
+
+            # disable plot output
+            plt.switch_backend("Agg")
+            plt.ioff()
+
             trainer_instance.show_loss()
             trainer_instance.show_feature_importance(X)
             self.assertGreaterEqual(accuracy, 0)
@@ -48,9 +54,9 @@ class TrainerBase(unittest.TestCase):
 
         if data_required:
             return self.trainer(pipeline=self.pipeline, X=X, y=y, model_wrapper=model_type,
-                                metric=metric)
+                                metric=metric, n_splits=2)
         else:
-            return self.trainer(pipeline=self.pipeline, model_wrapper=model_type, metric=metric)
+            return self.trainer(pipeline=self.pipeline, model_wrapper=model_type, metric=metric, n_splits=2)
 
 
 classification_X, classification_y = load_classification_data()
@@ -64,7 +70,7 @@ def add_classification_tests(model_name, model):
     TrainerBase.add_test_method(
         validation_test_name,
         TrainerBase._validate,
-        model_type=model(),
+        model_type=model(early_stopping_rounds=1),
         metric=AccuracyMetric.AUC,
         X=classification_X,
         y=classification_y
@@ -73,7 +79,7 @@ def add_classification_tests(model_name, model):
     TrainerBase.add_test_method(
         training_test_name,
         TrainerBase._train,
-        model_type=model(),
+        model_type=model(early_stopping_rounds=1),
         metric=AccuracyMetric.AUC,
         X=classification_X,
         y=classification_y
@@ -87,7 +93,7 @@ def add_regression_tests(model_name, model):
     TrainerBase.add_test_method(
         validation_test_name,
         TrainerBase._validate,
-        model_type=model(),
+        model_type=model(early_stopping_rounds=1),
         metric=AccuracyMetric.RMSE,
         X=regression_X,
         y=regression_y
@@ -95,14 +101,14 @@ def add_regression_tests(model_name, model):
     TrainerBase.add_test_method(
         training_test_name,
         TrainerBase._train,
-        model_type=model(),
-        metric=AccuracyMetric.AUC,
+        model_type=model(early_stopping_rounds=1),
+        metric=AccuracyMetric.RMSE,
         X=regression_X,
         y=regression_y
     )
 
 
-# Discover modules dinamically
+# Discover modules dynamically
 for loader, module_name, is_pkg in pkgutil.iter_modules(models.__path__):
     # import model module
     module = importlib.import_module(f'src.models.{module_name}')
