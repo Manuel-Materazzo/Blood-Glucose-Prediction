@@ -14,7 +14,7 @@ class AccurateCrossTrainer(Trainer):
         super().__init__(pipeline, model_wrapper, metric=metric, grouping_columns=grouping_columns, n_splits=n_splits)
 
     def __cross_train(self, X: DataFrame, y: Series, train_index: int, val_index: int, iterations=None,
-                      params=None, output_prediction_comparison=False) -> (int, int):
+                      params=None, output_prediction_comparison=False) -> tuple[int, float, DataFrame]:
         """
         Trains a Model on the provided training data by splitting it into training and validation sets.
         The split function does not shuffle, and it's based on the provided indexes.
@@ -34,13 +34,11 @@ class AccurateCrossTrainer(Trainer):
 
         # if no rounds, train with early stopping
         if iterations is None:
-            self.train_model(train_X, train_y, val_X, val_y, params=params)
+            _, processed_val_X = self.train_model(train_X, train_y, val_X, val_y, params=params)
         # else train normally
         else:
             self.train_model(train_X, train_y, iterations=iterations, params=params)
-
-        # re-process val_X to obtain accuracy
-        processed_val_X = self.pipeline.transform(val_X)
+            processed_val_X = self.pipeline.transform(val_X)
 
         # Predict and calculate accuracy
         predictions = self.get_predictions(processed_val_X)
@@ -60,7 +58,7 @@ class AccurateCrossTrainer(Trainer):
             return iterations, accuracy, prediction_comparison
 
     def validate_model(self, X: DataFrame, y: Series, log_level=2, iterations=None, params=None,
-                       output_prediction_comparison=False) -> (float, int, DataFrame):
+                       output_prediction_comparison=False) -> tuple[float, int, DataFrame]:
         """
         Trains 5 Models on the provided training data by cross-validation.
         Data is splitted into 5 folds, each model is trained on 4 folds and validated on 1 fold.
@@ -106,5 +104,4 @@ class AccurateCrossTrainer(Trainer):
             best_rounds.append(best_iteration or 0)
             cv_scores.append(accuracy)
 
-        return self._aggregate_cv_results(cv_scores, best_rounds, oof_comparisons_dataframes,
-                                             log_level, iterations, params, X, y)
+        return self._aggregate_cv_results(cv_scores, best_rounds, oof_comparisons_dataframes, log_level)
